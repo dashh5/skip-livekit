@@ -77,6 +77,23 @@ public final class LKLocalParticipant: LKParticipant {
         let timeout = kotlin.time.Duration.Companion.seconds(responseTimeoutSeconds)
         return try await local.performRpc(destinationIdentity: id, method: method, payload: payload, responseTimeout: timeout)
     }
+
+    public func streamText(for topic: String) async throws -> LKTextStreamWriter {
+        let sender = try await local.streamText(options: io.livekit.android.room.datastream.StreamTextOptions(topic: topic))
+        return LKTextStreamWriter(sender)
+    }
+
+    public func streamBytes(for topic: String, mimeType: String = "application/octet-stream") async throws -> LKByteStreamWriter {
+        let sender = try await local.streamBytes(options: io.livekit.android.room.datastream.StreamBytesOptions(topic: topic, mimeType: mimeType))
+        return LKByteStreamWriter(sender)
+    }
+
+    @discardableResult
+    public func sendFile(_ filePath: String, for topic: String, mimeType: String = "application/octet-stream") async throws -> Bool {
+        let result = try await local.sendFile(file: java.io.File(filePath), options: io.livekit.android.room.datastream.StreamBytesOptions(topic: topic, mimeType: mimeType))
+        if result.isFailure() { throw NSError(domain: "SkipRTC", code: -1) }
+        return true
+    }
     #else
     public var local: LiveKit.LocalParticipant { participant as! LiveKit.LocalParticipant }
 
@@ -101,6 +118,22 @@ public final class LKLocalParticipant: LKParticipant {
     public func performRpc(destinationIdentity: String, method: String, payload: String, responseTimeoutSeconds: Double = 10) async throws -> String {
         let identity = LiveKit.Participant.Identity(from: destinationIdentity)
         return try await local.performRpc(destinationIdentity: identity, method: method, payload: payload, responseTimeout: responseTimeoutSeconds)
+    }
+
+    public func streamText(for topic: String) async throws -> LKTextStreamWriter {
+        let writer = try await local.streamText(for: topic)
+        return LKTextStreamWriter(writer)
+    }
+
+    public func streamBytes(for topic: String, mimeType: String = "application/octet-stream") async throws -> LKByteStreamWriter {
+        let writer = try await local.streamBytes(options: LiveKit.StreamByteOptions(topic: topic, mimeType: mimeType))
+        return LKByteStreamWriter(writer)
+    }
+
+    @discardableResult
+    public func sendFile(_ fileURL: URL, for topic: String, mimeType: String = "application/octet-stream") async throws -> Bool {
+        _ = try await local.sendFile(fileURL, options: LiveKit.StreamByteOptions(topic: topic, mimeType: mimeType))
+        return true
     }
     #endif
 }
