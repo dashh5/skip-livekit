@@ -12,6 +12,6 @@ build:
   contents:
     - block: 'dependencies'
       contents:
-        - 'implementation("io.livekit:livekit-android:2.12.3")'
+        - 'implementation("io.livekit:livekit-android:2.20.2")'
         # CameraX support with pinch to zoom, torch control, etc.
         - 'implementation("io.livekit:livekit-android-camerax:2.12.3")'

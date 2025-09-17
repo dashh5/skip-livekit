@@ -16,7 +16,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://source.skip.tools/skip.git", from: "1.3.3"),
         .package(url: "https://source.skip.tools/skip-ui.git", from: "1.0.0"),
-        .package(url: "https://github.com/livekit/client-sdk-swift.git", from: "2.3.1"),
+        .package(url: "https://github.com/livekit/client-sdk-swift.git", from: "2.7.2"),
     ],
     targets: [
         .target(name: "SkipRTC", dependencies: [
