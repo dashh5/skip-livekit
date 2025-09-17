@@ -27,6 +27,11 @@ public final class LKRoom {
         _ = try await room.connect(url: url, token: token, options: io.livekit.android.ConnectOptions())
     }
 
+    public func connect(url: String, token: String, enableMicrophone: Bool) async throws {
+        let options = io.livekit.android.ConnectOptions(audio: enableMicrophone)
+        _ = try await room.connect(url: url, token: token, options: options)
+    }
+
     public func disconnect() async {
         room.disconnect()
     }
@@ -44,8 +49,21 @@ public final class LKRoom {
         default: return .disconnected
         }
     }
+
+    public var localParticipant: LKLocalParticipant {
+        LKLocalParticipant(room.localParticipant)
+    }
+
+    public var agentParticipant: LKParticipant? {
+        // Android SDK does not expose isAgent directly; infer from Participant.Kind
+        let agents = room.remoteParticipants.values.filter { $0.kind == io.livekit.android.room.participant.Participant.Kind.AGENT }
+        guard let first = agents.first else { return nil }
+        return LKParticipant(first)
+    }
     #else
     public let room: LiveKit.Room
+    // Store the adapter so it can be removed later
+    internal var iosDelegateAdapter: RoomDelegate?
 
     public init() {
         self.room = LiveKit.Room()
@@ -53,6 +71,10 @@ public final class LKRoom {
 
     public func connect(url: String, token: String) async throws {
         try await room.connect(url: url, token: token)
+    }
+
+    public func connect(url: String, token: String, enableMicrophone: Bool) async throws {
+        try await room.connect(url: url, token: token, connectOptions: LiveKit.ConnectOptions(enableMicrophone: enableMicrophone))
     }
 
     public func disconnect() async {
@@ -72,6 +94,15 @@ public final class LKRoom {
         case .reconnecting: return .reconnecting
         @unknown default: return .disconnected
         }
+    }
+
+    public var localParticipant: LKLocalParticipant {
+        LKLocalParticipant(room.localParticipant)
+    }
+
+    public var agentParticipant: LKParticipant? {
+        guard let agent = room.agentParticipant else { return nil }
+        return LKParticipant(agent)
     }
     #endif
 }
