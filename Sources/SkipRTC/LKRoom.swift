@@ -62,6 +62,30 @@ public final class LKRoom {
         guard let first = agents.first else { return nil }
         return LKParticipant(first)
     }
+
+    // MARK: - Audio Route
+    public var isSpeakerOutputPreferred: Bool {
+        get {
+            // Prefer speakerphone if selected device is speaker
+            return room.audioSwitchHandler?.selectedAudioDevice is com.twilio.audioswitch.AudioDevice.Speakerphone
+        }
+        set {
+            guard let handler = room.audioSwitchHandler else { return }
+            if newValue {
+                handler.selectDevice(com.twilio.audioswitch.AudioDevice.Speakerphone())
+            } else {
+                handler.selectDevice(com.twilio.audioswitch.AudioDevice.Earpiece())
+            }
+        }
+    }
+
+    public var remoteParticipants: [String: LKRemoteParticipant] {
+        var map: [String: LKRemoteParticipant] = [:]
+        for (id, rp) in room.remoteParticipants {
+            map[id.value] = LKRemoteParticipant(rp)
+        }
+        return map
+    }
     #else
     public let room: LiveKit.Room
     // Store the adapter so it can be removed later
@@ -105,6 +129,18 @@ public final class LKRoom {
     public var agentParticipant: LKParticipant? {
         guard let agent = room.agentParticipant else { return nil }
         return LKParticipant(agent)
+    }
+
+    public var remoteParticipants: [String: LKRemoteParticipant] {
+        var map: [String: LKRemoteParticipant] = [:]
+        for (id, rp) in room.remoteParticipants { map[id.stringValue] = LKRemoteParticipant(rp) }
+        return map
+    }
+
+    // MARK: - Audio Route
+    public var isSpeakerOutputPreferred: Bool {
+        get { LiveKit.AudioManager.shared.audioSession.isSpeakerOutputPreferred }
+        set { LiveKit.AudioManager.shared.audioSession.isSpeakerOutputPreferred = newValue }
     }
     #endif
 }

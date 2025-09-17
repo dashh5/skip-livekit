@@ -78,6 +78,10 @@ public final class LKLocalParticipant: LKParticipant {
         return try await local.performRpc(destinationIdentity: id, method: method, payload: payload, responseTimeout: timeout)
     }
 
+    public func setCamera(enabled: Bool) async throws {
+        _ = try await local.setCameraEnabled(enabled)
+    }
+
     public func streamText(for topic: String) async throws -> LKTextStreamWriter {
         let sender = try await local.streamText(options: io.livekit.android.room.datastream.StreamTextOptions(topic: topic))
         return LKTextStreamWriter(sender)
@@ -118,6 +122,10 @@ public final class LKLocalParticipant: LKParticipant {
     public func performRpc(destinationIdentity: String, method: String, payload: String, responseTimeoutSeconds: Double = 10) async throws -> String {
         let identity = LiveKit.Participant.Identity(from: destinationIdentity)
         return try await local.performRpc(destinationIdentity: identity, method: method, payload: payload, responseTimeout: responseTimeoutSeconds)
+    }
+
+    public func setCamera(enabled: Bool) async throws {
+        _ = try await local.setCamera(enabled: enabled)
     }
 
     public func streamText(for topic: String) async throws -> LKTextStreamWriter {
