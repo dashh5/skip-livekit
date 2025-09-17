@@ -45,6 +45,14 @@ public final class LKRemoteParticipant: LKParticipant {
 
     public var isSpeaking: Bool { participant.isSpeaking }
     public var audioLevel: Float { participant.audioLevel }
+    public var publications: [String: Any] {
+        // not exposing full type; keep minimal
+        var map: [String: Any] = [:]
+        for (sid, pub) in remote.trackPublications {
+            map[sid.sid] = pub
+        }
+        return map
+    }
     #else
     public var remote: LiveKit.RemoteParticipant { participant as! LiveKit.RemoteParticipant }
 
@@ -74,6 +82,7 @@ public final class LKRemoteParticipant: LKParticipant {
 
     public var isSpeaking: Bool { participant.isSpeaking }
     public var audioLevel: Float { participant.audioLevel }
+    public var publications: [String: LiveKit.TrackPublication] { remote.trackPublications }
     #endif
 }
 

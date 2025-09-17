@@ -86,6 +86,30 @@ public final class LKRoom {
         }
         return map
     }
+
+    // MARK: - Participant Lookup
+    public var localIdentity: String? { room.localParticipant.identity?.value }
+
+    public func participant(identity: String) -> LKParticipant? {
+        if room.localParticipant.identity?.value == identity { return LKParticipant(room.localParticipant) }
+        for (id, rp) in room.remoteParticipants { if id.value == identity { return LKParticipant(rp) } }
+        return nil
+    }
+
+    public func remoteParticipant(identity: String) -> LKRemoteParticipant? {
+        for (id, rp) in room.remoteParticipants { if id.value == identity { return LKRemoteParticipant(rp) } }
+        return nil
+    }
+
+    public var agentParticipants: [String: LKParticipant] {
+        var map: [String: LKParticipant] = [:]
+        for (id, rp) in room.remoteParticipants {
+            if rp.kind == io.livekit.android.room.participant.Participant.Kind.AGENT { map[id.value] = LKParticipant(rp) }
+        }
+        return map
+    }
+
+    public var agentIdentity: String? { agentParticipant?.identity }
     #else
     public let room: LiveKit.Room
     // Store the adapter so it can be removed later
@@ -142,6 +166,28 @@ public final class LKRoom {
         get { LiveKit.AudioManager.shared.audioSession.isSpeakerOutputPreferred }
         set { LiveKit.AudioManager.shared.audioSession.isSpeakerOutputPreferred = newValue }
     }
+
+    // MARK: - Participant Lookup
+    public var localIdentity: String? { room.localParticipant.identity?.stringValue }
+
+    public func participant(identity: String) -> LKParticipant? {
+        if room.localParticipant.identity?.stringValue == identity { return LKParticipant(room.localParticipant) }
+        for (id, rp) in room.remoteParticipants { if id.stringValue == identity { return LKParticipant(rp) } }
+        return nil
+    }
+
+    public func remoteParticipant(identity: String) -> LKRemoteParticipant? {
+        for (id, rp) in room.remoteParticipants { if id.stringValue == identity { return LKRemoteParticipant(rp) } }
+        return nil
+    }
+
+    public var agentParticipants: [String: LKParticipant] {
+        var map: [String: LKParticipant] = [:]
+        for (id, rp) in room.agentParticipants { map[id.stringValue] = LKParticipant(rp) }
+        return map
+    }
+
+    public var agentIdentity: String? { room.agentParticipant?.identity?.stringValue }
     #endif
 }
 
