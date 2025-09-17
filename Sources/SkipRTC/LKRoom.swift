@@ -17,6 +17,8 @@ public final class LKRoom {
     }
     #if SKIP
     public let room: io.livekit.android.room.Room
+    // Android event forwarding job
+    internal var androidEventJob: kotlinx.coroutines.Job?
 
     public init() {
         let context = skip.foundation.ProcessInfo.processInfo.androidContext

@@ -16,6 +16,11 @@ public protocol LKRoomDelegate: AnyObject {
     func roomDidReconnect(_ room: LKRoom)
     func room(_ room: LKRoom, didDisconnectWithError error: Error?)
     func room(_ room: LKRoom, participant: LKParticipant, didUpdateAttributes attributes: [String: String])
+    func room(_ room: LKRoom, participantDidConnect participant: LKParticipant)
+    func room(_ room: LKRoom, participantDidDisconnect participant: LKParticipant)
+    func room(_ room: LKRoom, didUpdateActiveSpeakers speakers: [LKParticipant])
+    func room(_ room: LKRoom, didUpdateMetadata metadata: String?)
+    func room(_ room: LKRoom, didReceiveData data: Data, from participant: LKParticipant?)
 }
 
 public extension LKRoomDelegate {
@@ -24,6 +29,11 @@ public extension LKRoomDelegate {
     func roomDidReconnect(_ room: LKRoom) {}
     func room(_ room: LKRoom, didDisconnectWithError error: Error?) {}
     func room(_ room: LKRoom, participant: LKParticipant, didUpdateAttributes attributes: [String: String]) {}
+    func room(_ room: LKRoom, participantDidConnect participant: LKParticipant) {}
+    func room(_ room: LKRoom, participantDidDisconnect participant: LKParticipant) {}
+    func room(_ room: LKRoom, didUpdateActiveSpeakers speakers: [LKParticipant]) {}
+    func room(_ room: LKRoom, didUpdateMetadata metadata: String?) {}
+    func room(_ room: LKRoom, didReceiveData data: Data, from participant: LKParticipant?) {}
 }
 
 extension LKRoom {
@@ -41,6 +51,22 @@ extension LKRoom {
         func room(_ room: Room, participant: Participant, didUpdateAttributes attributes: [String : String]) {
             guard let o = owner else { return }
             delegate?.room(o, participant: LKParticipant(participant), didUpdateAttributes: attributes)
+        }
+        func room(_ room: Room, participantDidConnect participant: Participant) {
+            guard let o = owner else { return }
+            delegate?.room(o, participantDidConnect: LKParticipant(participant))
+        }
+        func room(_ room: Room, participantDidDisconnect participant: Participant) {
+            guard let o = owner else { return }
+            delegate?.room(o, participantDidDisconnect: LKParticipant(participant))
+        }
+        func room(_ room: Room, didUpdateSpeakingParticipants participants: [Participant]) {
+            guard let o = owner else { return }
+            delegate?.room(o, didUpdateActiveSpeakers: participants.map { LKParticipant($0) })
+        }
+        func room(_ room: Room, didUpdateMetadata metadata: String?) {
+            guard let o = owner else { return }
+            delegate?.room(o, didUpdateMetadata: metadata)
         }
     }
 
@@ -62,6 +88,18 @@ extension LKRoom {
                     delegate.room(self, didDisconnectWithError: e.error)
                 case let e as io.livekit.android.events.RoomEvent.ParticipantAttributesChanged:
                     delegate.room(self, participant: LKParticipant(e.participant), didUpdateAttributes: e.changedAttributes)
+                case let e as io.livekit.android.events.RoomEvent.ParticipantConnected:
+                    delegate.room(self, participantDidConnect: LKParticipant(e.participant))
+                case let e as io.livekit.android.events.RoomEvent.ParticipantDisconnected:
+                    delegate.room(self, participantDidDisconnect: LKParticipant(e.participant))
+                case let e as io.livekit.android.events.RoomEvent.ActiveSpeakersChanged:
+                    delegate.room(self, didUpdateActiveSpeakers: e.speakers.map { LKParticipant($0) })
+                case let e as io.livekit.android.events.RoomEvent.RoomMetadataChanged:
+                    delegate.room(self, didUpdateMetadata: e.newMetadata)
+                case let e as io.livekit.android.events.RoomEvent.DataReceived:
+                    let data = Data(e.data)
+                    let from = e.participant != nil ? LKParticipant(e.participant!) : nil
+                    delegate.room(self, didReceiveData: data, from: from)
                 default:
                     break
                 }

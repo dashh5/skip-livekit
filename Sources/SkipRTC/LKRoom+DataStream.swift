@@ -11,28 +11,50 @@ import LiveKit
 
 public extension LKRoom {
     #if SKIP
-    typealias LKTextStreamHandler = (_ reader: io.livekit.android.room.datastream.incoming.TextStreamReceiver, _ fromIdentity: String) -> Void
+    typealias LKTextStreamHandler = (_ reader: LKTextStreamReader, _ fromIdentity: String) -> Void
+    typealias LKByteStreamHandler = (_ reader: LKByteStreamReader, _ fromIdentity: String) -> Void
 
     func registerTextStreamHandler(for topic: String, onNewStream: @escaping LKTextStreamHandler) {
         room.registerTextStreamHandler(topic: topic) { reader, fromIdentity in
-            onNewStream(reader, fromIdentity.value)
+            onNewStream(LKTextStreamReader(reader), fromIdentity.value)
         }
     }
 
     func unregisterTextStreamHandler(for topic: String) {
         room.unregisterTextStreamHandler(topic: topic)
     }
+
+    func registerByteStreamHandler(for topic: String, onNewStream: @escaping LKByteStreamHandler) {
+        room.registerByteStreamHandler(topic: topic) { reader, fromIdentity in
+            onNewStream(LKByteStreamReader(reader), fromIdentity.value)
+        }
+    }
+
+    func unregisterByteStreamHandler(for topic: String) {
+        room.unregisterByteStreamHandler(topic: topic)
+    }
     #else
-    typealias LKTextStreamHandler = (_ reader: LiveKit.TextStreamReader, _ fromIdentity: String) -> Void
+    typealias LKTextStreamHandler = (_ reader: LKTextStreamReader, _ fromIdentity: String) -> Void
+    typealias LKByteStreamHandler = (_ reader: LKByteStreamReader, _ fromIdentity: String) -> Void
 
     func registerTextStreamHandler(for topic: String, onNewStream: @escaping LKTextStreamHandler) async throws {
         try await room.registerTextStreamHandler(for: topic) { reader, fromIdentity in
-            onNewStream(reader, fromIdentity.stringValue)
+            onNewStream(LKTextStreamReader(reader), fromIdentity.stringValue)
         }
     }
 
     func unregisterTextStreamHandler(for topic: String) async {
         await room.unregisterTextStreamHandler(for: topic)
+    }
+
+    func registerByteStreamHandler(for topic: String, onNewStream: @escaping LKByteStreamHandler) async throws {
+        try await room.registerByteStreamHandler(for: topic) { reader, fromIdentity in
+            onNewStream(LKByteStreamReader(reader), fromIdentity.stringValue)
+        }
+    }
+
+    func unregisterByteStreamHandler(for topic: String) async {
+        await room.unregisterByteStreamHandler(for: topic)
     }
     #endif
 }

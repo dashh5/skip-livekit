@@ -23,6 +23,12 @@ public class LKParticipant {
     public var isAgent: Bool {
         participant.kind == io.livekit.android.room.participant.Participant.Kind.AGENT
     }
+
+    public var agentStateString: String {
+        // Android exposes agent state inside attributes; use AgentTypes if present
+        let raw = participant.attributes["lk.agent.state"] ?? "idle"
+        return raw
+    }
     #else
     public let participant: LiveKit.Participant
 
@@ -35,6 +41,8 @@ public class LKParticipant {
     public var attributes: [String: String] { participant.attributes }
 
     public var isAgent: Bool { participant.isAgent }
+
+    public var agentStateString: String { participant.agentStateString }
     #endif
 }
 
