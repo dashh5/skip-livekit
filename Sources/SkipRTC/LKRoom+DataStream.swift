@@ -11,12 +11,12 @@ import LiveKit
 
 public extension LKRoom {
     #if SKIP
-    typealias LKTextStreamHandler = (_ reader: LKTextStreamReader, _ fromIdentity: String) -> Void
-    typealias LKByteStreamHandler = (_ reader: LKByteStreamReader, _ fromIdentity: String) -> Void
+    typealias LKTextStreamHandler = (_ reader: LKTextStreamReader, _ fromIdentity: String) async throws -> Void
+    typealias LKByteStreamHandler = (_ reader: LKByteStreamReader, _ fromIdentity: String) async throws -> Void
 
     func registerTextStreamHandler(for topic: String, onNewStream: @escaping LKTextStreamHandler) {
         room.registerTextStreamHandler(topic: topic) { reader, fromIdentity in
-            onNewStream(LKTextStreamReader(reader), fromIdentity.value)
+            Task { try? await onNewStream(LKTextStreamReader(reader), fromIdentity.value) }
         }
     }
 
@@ -26,7 +26,7 @@ public extension LKRoom {
 
     func registerByteStreamHandler(for topic: String, onNewStream: @escaping LKByteStreamHandler) {
         room.registerByteStreamHandler(topic: topic) { reader, fromIdentity in
-            onNewStream(LKByteStreamReader(reader), fromIdentity.value)
+            Task { try? await onNewStream(LKByteStreamReader(reader), fromIdentity.value) }
         }
     }
 
@@ -34,12 +34,12 @@ public extension LKRoom {
         room.unregisterByteStreamHandler(topic: topic)
     }
     #else
-    typealias LKTextStreamHandler = (_ reader: LKTextStreamReader, _ fromIdentity: String) -> Void
-    typealias LKByteStreamHandler = (_ reader: LKByteStreamReader, _ fromIdentity: String) -> Void
+    typealias LKTextStreamHandler = (_ reader: LKTextStreamReader, _ fromIdentity: String) async throws -> Void
+    typealias LKByteStreamHandler = (_ reader: LKByteStreamReader, _ fromIdentity: String) async throws -> Void
 
     func registerTextStreamHandler(for topic: String, onNewStream: @escaping LKTextStreamHandler) async throws {
         try await room.registerTextStreamHandler(for: topic) { reader, fromIdentity in
-            onNewStream(LKTextStreamReader(reader), fromIdentity.stringValue)
+            Task { try? await onNewStream(LKTextStreamReader(reader), fromIdentity.stringValue) }
         }
     }
 
@@ -49,7 +49,7 @@ public extension LKRoom {
 
     func registerByteStreamHandler(for topic: String, onNewStream: @escaping LKByteStreamHandler) async throws {
         try await room.registerByteStreamHandler(for: topic) { reader, fromIdentity in
-            onNewStream(LKByteStreamReader(reader), fromIdentity.stringValue)
+            Task { try? await onNewStream(LKByteStreamReader(reader), fromIdentity.stringValue) }
         }
     }
 

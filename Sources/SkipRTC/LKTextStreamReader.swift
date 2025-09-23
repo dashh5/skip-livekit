@@ -8,7 +8,7 @@ import io.livekit.android.room.datastream.incoming.__
 import LiveKit
 #endif
 
-public final class LKTextStreamReader: @unchecked Sendable, AsyncSequence {
+public final class LKTextStreamReader: @unchecked Sendable {
     #if SKIP
     public let android: io.livekit.android.room.datastream.incoming.TextStreamReceiver
     init(_ receiver: io.livekit.android.room.datastream.incoming.TextStreamReceiver) { self.android = receiver }
@@ -19,6 +19,8 @@ public final class LKTextStreamReader: @unchecked Sendable, AsyncSequence {
         for chunk in chunks { result += chunk }
         return result
     }
+
+    public var info: TextStreamInfo { TextStreamInfo(android.info) }
     #else
     public let ios: LiveKit.TextStreamReader
     init(_ reader: LiveKit.TextStreamReader) { self.ios = reader }
@@ -26,15 +28,10 @@ public final class LKTextStreamReader: @unchecked Sendable, AsyncSequence {
     public func readAll() async throws -> String {
         try await ios.readAll()
     }
+    public var info: TextStreamInfo { TextStreamInfo(ios.info) }
 
-    // AsyncSequence passthrough
-    public struct AsyncIterator: AsyncIteratorProtocol {
-        var inner: LiveKit.TextStreamReader.AsyncIterator
-        public mutating func next() async throws -> String? { try await inner.next() }
-    }
-    public func makeAsyncIterator() -> AsyncIterator {
-        AsyncIterator(inner: ios.makeAsyncIterator())
-    }
+    // Provide chunk iteration for iOS via helper
+    public func readChunks() -> LiveKit.TextStreamReader.AsyncChunks { ios.makeAsyncIterator() }
     #endif
 }
 
