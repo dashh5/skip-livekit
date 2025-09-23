@@ -8,7 +8,7 @@ import io.livekit.android.room.datastream.incoming.__
 import LiveKit
 #endif
 
-public final class LKTextStreamReader: @unchecked Sendable {
+public final class LKTextStreamReader: @unchecked Sendable, AsyncSequence {
     #if SKIP
     public let android: io.livekit.android.room.datastream.incoming.TextStreamReceiver
     init(_ receiver: io.livekit.android.room.datastream.incoming.TextStreamReceiver) { self.android = receiver }
@@ -25,6 +25,15 @@ public final class LKTextStreamReader: @unchecked Sendable {
 
     public func readAll() async throws -> String {
         try await ios.readAll()
+    }
+
+    // AsyncSequence passthrough
+    public struct AsyncIterator: AsyncIteratorProtocol {
+        var inner: LiveKit.TextStreamReader.AsyncIterator
+        public mutating func next() async throws -> String? { try await inner.next() }
+    }
+    public func makeAsyncIterator() -> AsyncIterator {
+        AsyncIterator(inner: ios.makeAsyncIterator())
     }
     #endif
 }

@@ -17,6 +17,13 @@ public typealias ByteStreamWriter = LKByteStreamWriter
 public typealias RoomDelegate = LKRoomDelegate
 public typealias ConnectionState = LKRoom.LKConnectionState
 
+// Stream info types (iOS-only underlying types)
+#if !SKIP
+import LiveKit
+public typealias TextStreamInfo = LiveKit.TextStreamInfo
+public typealias ByteStreamInfo = LiveKit.ByteStreamInfo
+#endif
+
 public extension LKParticipant {
     typealias Identity = String
 }
