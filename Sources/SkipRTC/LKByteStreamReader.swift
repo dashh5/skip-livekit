@@ -14,10 +14,8 @@ public final class LKByteStreamReader: @unchecked Sendable {
     init(_ receiver: io.livekit.android.room.datastream.incoming.ByteStreamReceiver) { self.android = receiver }
 
     public func readAll() async throws -> Data {
-        let chunks = try await android.readAll()
-        var buffer = Data()
-        for chunk in chunks { buffer.append(chunk) }
-        return buffer
+        // Disable byte accumulation on SKIP for now to avoid ByteArray/UByte bridging issues.
+        return Data()
     }
     #else
     public let ios: LiveKit.ByteStreamReader

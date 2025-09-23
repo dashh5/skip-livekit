@@ -15,7 +15,9 @@ public final class LKTextStreamReader: @unchecked Sendable {
 
     public func readAll() async throws -> String {
         let chunks = try await android.readAll()
-        return chunks.joined()
+        var result = ""
+        for chunk in chunks { result += chunk }
+        return result
     }
     #else
     public let ios: LiveKit.TextStreamReader

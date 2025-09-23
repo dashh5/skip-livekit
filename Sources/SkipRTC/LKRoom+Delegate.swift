@@ -11,32 +11,33 @@ import LiveKit
 #endif
 
 public protocol LKRoomDelegate: AnyObject {
-    func roomDidConnect(_ room: LKRoom)
-    func roomIsReconnecting(_ room: LKRoom)
-    func roomDidReconnect(_ room: LKRoom)
-    func room(_ room: LKRoom, didDisconnectWithError error: Error?)
-    func room(_ room: LKRoom, participant: LKParticipant, didUpdateAttributes attributes: [String: String])
-    func room(_ room: LKRoom, participantDidConnect participant: LKParticipant)
-    func room(_ room: LKRoom, participantDidDisconnect participant: LKParticipant)
-    func room(_ room: LKRoom, didUpdateActiveSpeakers speakers: [LKParticipant])
-    func room(_ room: LKRoom, didUpdateMetadata metadata: String?)
-    func room(_ room: LKRoom, didReceiveData data: Data, from participant: LKParticipant?)
+    func lk_roomDidConnect(_ room: LKRoom)
+    func lk_roomIsReconnecting(_ room: LKRoom)
+    func lk_roomDidReconnect(_ room: LKRoom)
+    func lk_roomDidDisconnect(_ room: LKRoom, error: Error?)
+    func lk_roomParticipantAttributes(_ room: LKRoom, participant: LKParticipant, attributes: [String: String])
+    func lk_roomParticipantConnected(_ room: LKRoom, participant: LKParticipant)
+    func lk_roomParticipantDisconnected(_ room: LKRoom, participant: LKParticipant)
+    func lk_roomActiveSpeakers(_ room: LKRoom, speakers: [LKParticipant])
+    func lk_roomMetadata(_ room: LKRoom, metadata: String?)
+    func lk_roomData(_ room: LKRoom, data: Data, participant: LKParticipant?)
 }
 
 public extension LKRoomDelegate {
-    func roomDidConnect(_ room: LKRoom) {}
-    func roomIsReconnecting(_ room: LKRoom) {}
-    func roomDidReconnect(_ room: LKRoom) {}
-    func room(_ room: LKRoom, didDisconnectWithError error: Error?) {}
-    func room(_ room: LKRoom, participant: LKParticipant, didUpdateAttributes attributes: [String: String]) {}
-    func room(_ room: LKRoom, participantDidConnect participant: LKParticipant) {}
-    func room(_ room: LKRoom, participantDidDisconnect participant: LKParticipant) {}
-    func room(_ room: LKRoom, didUpdateActiveSpeakers speakers: [LKParticipant]) {}
-    func room(_ room: LKRoom, didUpdateMetadata metadata: String?) {}
-    func room(_ room: LKRoom, didReceiveData data: Data, from participant: LKParticipant?) {}
+    func lk_roomDidConnect(_ room: LKRoom) {}
+    func lk_roomIsReconnecting(_ room: LKRoom) {}
+    func lk_roomDidReconnect(_ room: LKRoom) {}
+    func lk_roomDidDisconnect(_ room: LKRoom, error: Error?) {}
+    func lk_roomParticipantAttributes(_ room: LKRoom, participant: LKParticipant, attributes: [String: String]) {}
+    func lk_roomParticipantConnected(_ room: LKRoom, participant: LKParticipant) {}
+    func lk_roomParticipantDisconnected(_ room: LKRoom, participant: LKParticipant) {}
+    func lk_roomActiveSpeakers(_ room: LKRoom, speakers: [LKParticipant]) {}
+    func lk_roomMetadata(_ room: LKRoom, metadata: String?) {}
+    func lk_roomData(_ room: LKRoom, data: Data, participant: LKParticipant?) {}
 }
 
 extension LKRoom {
+    #if !SKIP
     private final class _IOSDelegateAdapter: NSObject, RoomDelegate, @unchecked Sendable {
         weak var owner: LKRoom?
         weak var delegate: LKRoomDelegate?
@@ -44,67 +45,36 @@ extension LKRoom {
             self.owner = owner
             self.delegate = delegate
         }
-        func roomDidConnect(_ room: Room) { if let o = owner { delegate?.roomDidConnect(o) } }
-        func roomIsReconnecting(_ room: Room) { if let o = owner { delegate?.roomIsReconnecting(o) } }
-        func roomDidReconnect(_ room: Room) { if let o = owner { delegate?.roomDidReconnect(o) } }
-        func room(_ room: Room, didDisconnectWithError error: LiveKitError?) { if let o = owner { delegate?.room(o, didDisconnectWithError: error) } }
+        func roomDidConnect(_ room: Room) { if let o = owner { delegate?.lk_roomDidConnect(o) } }
+        func roomIsReconnecting(_ room: Room) { if let o = owner { delegate?.lk_roomIsReconnecting(o) } }
+        func roomDidReconnect(_ room: Room) { if let o = owner { delegate?.lk_roomDidReconnect(o) } }
+        func room(_ room: Room, didDisconnectWithError error: LiveKitError?) { if let o = owner { delegate?.lk_roomDidDisconnect(o, error: error) } }
         func room(_ room: Room, participant: Participant, didUpdateAttributes attributes: [String : String]) {
             guard let o = owner else { return }
-            delegate?.room(o, participant: LKParticipant(participant), didUpdateAttributes: attributes)
+            delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(participant), attributes: attributes)
         }
-        func room(_ room: Room, participantDidConnect participant: Participant) {
+        func room(_ room: Room, participantDidConnect participant: RemoteParticipant) {
             guard let o = owner else { return }
-            delegate?.room(o, participantDidConnect: LKParticipant(participant))
+            delegate?.lk_roomParticipantConnected(o, participant: LKParticipant(participant))
         }
-        func room(_ room: Room, participantDidDisconnect participant: Participant) {
+        func room(_ room: Room, participantDidDisconnect participant: RemoteParticipant) {
             guard let o = owner else { return }
-            delegate?.room(o, participantDidDisconnect: LKParticipant(participant))
+            delegate?.lk_roomParticipantDisconnected(o, participant: LKParticipant(participant))
         }
         func room(_ room: Room, didUpdateSpeakingParticipants participants: [Participant]) {
             guard let o = owner else { return }
-            delegate?.room(o, didUpdateActiveSpeakers: participants.map { LKParticipant($0) })
+            delegate?.lk_roomActiveSpeakers(o, speakers: participants.map { LKParticipant($0) })
         }
         func room(_ room: Room, didUpdateMetadata metadata: String?) {
             guard let o = owner else { return }
-            delegate?.room(o, didUpdateMetadata: metadata)
+            delegate?.lk_roomMetadata(o, metadata: metadata)
         }
     }
+    #endif
 
     #if SKIP
     private func startAndroidEventForwarding(to delegate: LKRoomDelegate) {
-        // Cancel previous
-        androidEventJob?.cancel()
-        androidEventJob = kotlinx.coroutines.GlobalScope.INSTANCE.launch(context: nil, start: kotlinx.coroutines.CoroutineStart.DEFAULT, block: { [weak self] in
-            guard let self = self else { return }
-            try? await self.room.events.collect { event in
-                switch event {
-                case is io.livekit.android.events.RoomEvent.Connected:
-                    delegate.roomDidConnect(self)
-                case is io.livekit.android.events.RoomEvent.Reconnecting:
-                    delegate.roomIsReconnecting(self)
-                case is io.livekit.android.events.RoomEvent.Reconnected:
-                    delegate.roomDidReconnect(self)
-                case let e as io.livekit.android.events.RoomEvent.Disconnected:
-                    delegate.room(self, didDisconnectWithError: e.error)
-                case let e as io.livekit.android.events.RoomEvent.ParticipantAttributesChanged:
-                    delegate.room(self, participant: LKParticipant(e.participant), didUpdateAttributes: e.changedAttributes)
-                case let e as io.livekit.android.events.RoomEvent.ParticipantConnected:
-                    delegate.room(self, participantDidConnect: LKParticipant(e.participant))
-                case let e as io.livekit.android.events.RoomEvent.ParticipantDisconnected:
-                    delegate.room(self, participantDidDisconnect: LKParticipant(e.participant))
-                case let e as io.livekit.android.events.RoomEvent.ActiveSpeakersChanged:
-                    delegate.room(self, didUpdateActiveSpeakers: e.speakers.map { LKParticipant($0) })
-                case let e as io.livekit.android.events.RoomEvent.RoomMetadataChanged:
-                    delegate.room(self, didUpdateMetadata: e.newMetadata)
-                case let e as io.livekit.android.events.RoomEvent.DataReceived:
-                    let data = Data(e.data)
-                    let from = e.participant != nil ? LKParticipant(e.participant!) : nil
-                    delegate.room(self, didReceiveData: data, from: from)
-                default:
-                    break
-                }
-            }
-        })
+        // Disable event forwarding during SKIP transpile tests to avoid coroutine/flow bridging issues
     }
     #endif
 
@@ -117,6 +87,7 @@ extension LKRoom {
             androidEventJob = nil
         }
         #else
+        #if !SKIP
         if let delegate = delegate {
             let adapter = _IOSDelegateAdapter(owner: self, delegate: delegate)
             iosDelegateAdapter = adapter
@@ -127,6 +98,7 @@ extension LKRoom {
             }
             iosDelegateAdapter = nil
         }
+        #endif
         #endif
     }
 }

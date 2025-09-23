@@ -10,12 +10,12 @@ import LiveKit
 
 public extension LKRoom {
     #if SKIP
-    typealias LKRpcHandler = (io.livekit.android.room.participant.LocalParticipant.RpcInvocationData) async throws -> String
+    typealias LKRpcHandler = (Any) async throws -> String
 
     func registerRpcMethod(_ method: String, handler: @escaping LKRpcHandler) async throws {
         room.registerRpcMethod(method: method) { data in
             // Convert to Swift async by bridging suspend
-            return try await handler(data)
+            return try await handler(data as Any)
         }
     }
 

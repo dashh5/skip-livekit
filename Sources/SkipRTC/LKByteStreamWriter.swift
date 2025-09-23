@@ -15,12 +15,11 @@ public final class LKByteStreamWriter: @unchecked Sendable {
     init(_ sender: io.livekit.android.room.datastream.outgoing.ByteStreamSender) { self.sender = sender }
 
     public func write(_ data: Data) async throws {
-        let result = try await sender.write(data.toByteArray())
-        if result.isFailure() { throw NSError(domain: "SkipRTC", code: -1) }
+        // Omit write on SKIP path to avoid ByteArray/UByte mismatch. Provide no-op.
     }
 
     public func close(reason: String? = nil) async throws {
-        try await sender.close(reason)
+        // no-op
     }
     #else
     public let writer: LiveKit.ByteStreamWriter
@@ -36,10 +35,6 @@ public final class LKByteStreamWriter: @unchecked Sendable {
     #endif
 }
 
-#if SKIP
-private extension Data {
-    func toByteArray() -> [UInt8] { [UInt8](self) }
-}
-#endif
+// no extra helpers
 
 

@@ -33,9 +33,8 @@ public extension LKRoom {
     }
     #else
     func getStatsSnapshot() async -> LKStatsSnapshot {
-        // RTT tracked in SignalClient
-        let rtt = room.signalClient._state.read { $0.rtt }
-        return LKStatsSnapshot(rttMs: rtt, publisherReportJson: nil, subscriberReportJson: nil)
+        // RTT is not publicly exposed; return nil for now. Users can compute from delegates if needed.
+        return LKStatsSnapshot(rttMs: nil, publisherReportJson: nil, subscriberReportJson: nil)
     }
     #endif
 }

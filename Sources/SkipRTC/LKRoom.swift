@@ -57,10 +57,11 @@ public final class LKRoom {
     }
 
     public var agentParticipant: LKParticipant? {
-        // Android SDK does not expose isAgent directly; infer from Participant.Kind
-        let agents = room.remoteParticipants.values.filter { $0.kind == io.livekit.android.room.participant.Participant.Kind.AGENT }
-        guard let first = agents.first else { return nil }
-        return LKParticipant(first)
+        // Find first AGENT participant without using higher-order functions
+        for p in room.remoteParticipants.values {
+            if p.kind == io.livekit.android.room.participant.Participant.Kind.AGENT { return LKParticipant(p) }
+        }
+        return nil
     }
 
     // MARK: - Audio Route
@@ -71,18 +72,24 @@ public final class LKRoom {
         }
         set {
             guard let handler = room.audioSwitchHandler else { return }
+            // Find existing devices rather than constructing
+            let devices = handler.availableAudioDevices
             if newValue {
-                handler.selectDevice(com.twilio.audioswitch.AudioDevice.Speakerphone())
+                var found: com.twilio.audioswitch.AudioDevice? = nil
+                for d in devices { if d is com.twilio.audioswitch.AudioDevice.Speakerphone { found = d; break } }
+                if let sp = found { handler.selectDevice(sp) }
             } else {
-                handler.selectDevice(com.twilio.audioswitch.AudioDevice.Earpiece())
+                var found: com.twilio.audioswitch.AudioDevice? = nil
+                for d in devices { if d is com.twilio.audioswitch.AudioDevice.Earpiece { found = d; break } }
+                if let ep = found { handler.selectDevice(ep) }
             }
         }
     }
 
     public var remoteParticipants: [String: LKRemoteParticipant] {
         var map: [String: LKRemoteParticipant] = [:]
-        for (id, rp) in room.remoteParticipants {
-            map[id.value] = LKRemoteParticipant(rp)
+        for rp in room.remoteParticipants.values {
+            if let id = rp.identity?.value { map[id] = LKRemoteParticipant(rp) }
         }
         return map
     }
@@ -92,19 +99,19 @@ public final class LKRoom {
 
     public func participant(identity: String) -> LKParticipant? {
         if room.localParticipant.identity?.value == identity { return LKParticipant(room.localParticipant) }
-        for (id, rp) in room.remoteParticipants { if id.value == identity { return LKParticipant(rp) } }
+        for rp in room.remoteParticipants.values { if rp.identity?.value == identity { return LKParticipant(rp) } }
         return nil
     }
 
     public func remoteParticipant(identity: String) -> LKRemoteParticipant? {
-        for (id, rp) in room.remoteParticipants { if id.value == identity { return LKRemoteParticipant(rp) } }
+        for rp in room.remoteParticipants.values { if rp.identity?.value == identity { return LKRemoteParticipant(rp) } }
         return nil
     }
 
     public var agentParticipants: [String: LKParticipant] {
         var map: [String: LKParticipant] = [:]
-        for (id, rp) in room.remoteParticipants {
-            if rp.kind == io.livekit.android.room.participant.Participant.Kind.AGENT { map[id.value] = LKParticipant(rp) }
+        for rp in room.remoteParticipants.values {
+            if rp.kind == io.livekit.android.room.participant.Participant.Kind.AGENT, let id = rp.identity?.value { map[id] = LKParticipant(rp) }
         }
         return map
     }
@@ -162,10 +169,14 @@ public final class LKRoom {
     }
 
     // MARK: - Audio Route
+    #if os(iOS) || os(tvOS) || os(visionOS)
     public var isSpeakerOutputPreferred: Bool {
         get { LiveKit.AudioManager.shared.audioSession.isSpeakerOutputPreferred }
         set { LiveKit.AudioManager.shared.audioSession.isSpeakerOutputPreferred = newValue }
     }
+    #else
+    public var isSpeakerOutputPreferred: Bool { false }
+    #endif
 
     // MARK: - Participant Lookup
     public var localIdentity: String? { room.localParticipant.identity?.stringValue }

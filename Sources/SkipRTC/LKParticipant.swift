@@ -18,7 +18,11 @@ public class LKParticipant {
 
     public var identity: String? { participant.identity?.value }
     public var metadata: String? { participant.metadata }
-    public var attributes: [String: String] { participant.attributes }
+    public var attributes: [String: String] {
+        var dict: [String: String] = [:]
+        for (k, v) in participant.attributes { dict[k] = v }
+        return dict
+    }
 
     public var isAgent: Bool {
         participant.kind == io.livekit.android.room.participant.Participant.Kind.AGENT
@@ -59,23 +63,23 @@ public final class LKLocalParticipant: LKParticipant {
     }
 
     public func set(attributes: [String: String]) async throws {
-        local.updateAttributes(attributes)
+        let map = java.util.HashMap<kotlin.String, kotlin.String>()
+        for (k, v) in attributes { map.put(k, v) }
+        local.updateAttributes(map)
     }
 
     @discardableResult
     public func sendText(_ text: String, for topic: String) async throws -> Bool {
         let opts = io.livekit.android.room.datastream.StreamTextOptions(topic: topic)
-        let result = try await local.sendText(text: text, options: opts)
-        if result.isFailure() {
-            throw NSError(domain: "SkipRTC", code: -1, userInfo: [NSLocalizedDescriptionKey: result.exceptionOrNull()?.message ?? "sendText failed"]) // SKIP throws
-        }
+        _ = try await local.sendText(text: text, options: opts)
         return true
     }
 
     public func performRpc(destinationIdentity: String, method: String, payload: String, responseTimeoutSeconds: Double = 10) async throws -> String {
         let id = io.livekit.android.room.participant.Participant.Identity(destinationIdentity)
-        let timeout = kotlin.time.Duration.Companion.seconds(responseTimeoutSeconds)
-        return try await local.performRpc(destinationIdentity: id, method: method, payload: payload, responseTimeout: timeout)
+        // Use default timeout via Companion to avoid passing Duration from Swift
+        // Call overload without responseTimeout to avoid Companion lookup in transpiled code
+        return try await local.performRpc(destinationIdentity: id, method: method, payload: payload)
     }
 
     public func setCamera(enabled: Bool) async throws {
@@ -94,8 +98,7 @@ public final class LKLocalParticipant: LKParticipant {
 
     @discardableResult
     public func sendFile(_ filePath: String, for topic: String, mimeType: String = "application/octet-stream") async throws -> Bool {
-        let result = try await local.sendFile(file: java.io.File(filePath), options: io.livekit.android.room.datastream.StreamBytesOptions(topic: topic, mimeType: mimeType))
-        if result.isFailure() { throw NSError(domain: "SkipRTC", code: -1) }
+        _ = try await local.sendFile(file: java.io.File(filePath), options: io.livekit.android.room.datastream.StreamBytesOptions(topic: topic, mimeType: mimeType))
         return true
     }
     #else

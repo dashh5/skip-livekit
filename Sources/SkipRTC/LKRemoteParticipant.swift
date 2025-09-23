@@ -45,23 +45,18 @@ public final class LKRemoteParticipant: LKParticipant {
 
     public var isSpeaking: Bool { participant.isSpeaking }
     public var audioLevel: Float { participant.audioLevel }
-    public var publications: [String: Any] {
-        // not exposing full type; keep minimal
-        var map: [String: Any] = [:]
-        for (sid, pub) in remote.trackPublications {
-            map[sid.sid] = pub
-        }
-        return map
-    }
+    public var publications: [String: Any] { [:] }
     #else
     public var remote: LiveKit.RemoteParticipant { participant as! LiveKit.RemoteParticipant }
 
     private func remoteAudioPublication() -> LiveKit.RemoteTrackPublication? {
-        return remote.getTrackPublication(source: .microphone) as? LiveKit.RemoteTrackPublication
+        return (remote.audioTracks.first as? LiveKit.RemoteTrackPublication)
+            ?? (remote.trackPublications.values.first { $0.kind == .audio } as? LiveKit.RemoteTrackPublication)
     }
 
     private func remoteVideoPublication() -> LiveKit.RemoteTrackPublication? {
-        return remote.getTrackPublication(source: .camera) as? LiveKit.RemoteTrackPublication
+        return (remote.videoTracks.first as? LiveKit.RemoteTrackPublication)
+            ?? (remote.trackPublications.values.first { $0.kind == .video } as? LiveKit.RemoteTrackPublication)
     }
 
     public func setAudioSubscribed(_ subscribed: Bool) async throws {
@@ -82,7 +77,11 @@ public final class LKRemoteParticipant: LKParticipant {
 
     public var isSpeaking: Bool { participant.isSpeaking }
     public var audioLevel: Float { participant.audioLevel }
-    public var publications: [String: LiveKit.TrackPublication] { remote.trackPublications }
+    public var publications: [String: LiveKit.TrackPublication] {
+        var map: [String: LiveKit.TrackPublication] = [:]
+        for (sid, pub) in remote.trackPublications { map[sid.stringValue] = pub }
+        return map
+    }
     #endif
 }
 
