@@ -38,34 +38,34 @@ public extension LKRoomDelegate {
 
 extension LKRoom {
     #if !SKIP
-    private final class _IOSDelegateAdapter: NSObject, RoomDelegate, @unchecked Sendable {
+    private final class _IOSDelegateAdapter: NSObject, LiveKit.RoomDelegate, @unchecked Sendable {
         weak var owner: LKRoom?
         weak var delegate: LKRoomDelegate?
         init(owner: LKRoom, delegate: LKRoomDelegate) {
             self.owner = owner
             self.delegate = delegate
         }
-        func roomDidConnect(_ room: Room) { if let o = owner { delegate?.lk_roomDidConnect(o) } }
-        func roomIsReconnecting(_ room: Room) { if let o = owner { delegate?.lk_roomIsReconnecting(o) } }
-        func roomDidReconnect(_ room: Room) { if let o = owner { delegate?.lk_roomDidReconnect(o) } }
-        func room(_ room: Room, didDisconnectWithError error: LiveKitError?) { if let o = owner { delegate?.lk_roomDidDisconnect(o, error: error) } }
-        func room(_ room: Room, participant: Participant, didUpdateAttributes attributes: [String : String]) {
+        func roomDidConnect(_ room: LiveKit.Room) { if let o = owner { delegate?.lk_roomDidConnect(o) } }
+        func roomIsReconnecting(_ room: LiveKit.Room) { if let o = owner { delegate?.lk_roomIsReconnecting(o) } }
+        func roomDidReconnect(_ room: LiveKit.Room) { if let o = owner { delegate?.lk_roomDidReconnect(o) } }
+        func room(_ room: LiveKit.Room, didDisconnectWithError error: LiveKit.LiveKitError?) { if let o = owner { delegate?.lk_roomDidDisconnect(o, error: error) } }
+        func room(_ room: LiveKit.Room, participant: LiveKit.Participant, didUpdateAttributes attributes: [String : String]) {
             guard let o = owner else { return }
             delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(participant), attributes: attributes)
         }
-        func room(_ room: Room, participantDidConnect participant: RemoteParticipant) {
+        func room(_ room: LiveKit.Room, participantDidConnect participant: LiveKit.RemoteParticipant) {
             guard let o = owner else { return }
             delegate?.lk_roomParticipantConnected(o, participant: LKParticipant(participant))
         }
-        func room(_ room: Room, participantDidDisconnect participant: RemoteParticipant) {
+        func room(_ room: LiveKit.Room, participantDidDisconnect participant: LiveKit.RemoteParticipant) {
             guard let o = owner else { return }
             delegate?.lk_roomParticipantDisconnected(o, participant: LKParticipant(participant))
         }
-        func room(_ room: Room, didUpdateSpeakingParticipants participants: [Participant]) {
+        func room(_ room: LiveKit.Room, didUpdateSpeakingParticipants participants: [LiveKit.Participant]) {
             guard let o = owner else { return }
             delegate?.lk_roomActiveSpeakers(o, speakers: participants.map { LKParticipant($0) })
         }
-        func room(_ room: Room, didUpdateMetadata metadata: String?) {
+        func room(_ room: LiveKit.Room, didUpdateMetadata metadata: String?) {
             guard let o = owner else { return }
             delegate?.lk_roomMetadata(o, metadata: metadata)
         }

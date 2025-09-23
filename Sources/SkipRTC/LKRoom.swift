@@ -120,7 +120,7 @@ public final class LKRoom {
     #else
     public let room: LiveKit.Room
     // Store the adapter so it can be removed later
-    internal var iosDelegateAdapter: RoomDelegate?
+    internal var iosDelegateAdapter: LiveKit.RoomDelegate?
 
     public init() {
         self.room = LiveKit.Room()
