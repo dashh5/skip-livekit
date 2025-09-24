@@ -119,8 +119,9 @@ public final class LKRoom {
     public var agentIdentity: String? { agentParticipant?.identity }
     #else
     public let room: LiveKit.Room
-    // Store the adapter so it can be removed later
+    // Store adapters so they can be removed later (supports multiple delegates)
     internal var iosDelegateAdapter: LiveKit.RoomDelegate?
+    internal var iosDelegateAdapters: [ObjectIdentifier: LiveKit.RoomDelegate] = [:]
 
     public init() {
         self.room = LiveKit.Room()

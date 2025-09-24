@@ -37,6 +37,34 @@ public extension LKRoomDelegate {
 }
 
 extension LKRoom {
+    // MARK: - Public delegate management (mirrors LiveKit API names)
+    public func add(delegate: LKRoomDelegate) {
+        #if SKIP
+        // Start forwarding if not already. Multiple delegates can be layered via your app.
+        startAndroidEventForwarding(to: delegate)
+        #else
+        let key = ObjectIdentifier(delegate)
+        if let existing = iosDelegateAdapters[key] {
+            room.delegates.remove(delegate: existing)
+        }
+        let adapter = _IOSDelegateAdapter(owner: self, delegate: delegate)
+        iosDelegateAdapters[key] = adapter
+        room.delegates.add(delegate: adapter)
+        #endif
+    }
+
+    public func remove(delegate: LKRoomDelegate) {
+        #if SKIP
+        // No per-delegate tracking yet; stop global forwarding
+        androidEventJob?.cancel()
+        androidEventJob = nil
+        #else
+        let key = ObjectIdentifier(delegate)
+        if let adapter = iosDelegateAdapters.removeValue(forKey: key) {
+            room.delegates.remove(delegate: adapter)
+        }
+        #endif
+    }
     #if !SKIP
     private final class _IOSDelegateAdapter: NSObject, LiveKit.RoomDelegate, @unchecked Sendable {
         weak var owner: LKRoom?
@@ -87,18 +115,13 @@ extension LKRoom {
             androidEventJob = nil
         }
         #else
-        #if !SKIP
         if let delegate = delegate {
-            let adapter = _IOSDelegateAdapter(owner: self, delegate: delegate)
-            iosDelegateAdapter = adapter
-            room.delegates.add(delegate: adapter)
+            add(delegate: delegate)
         } else {
-            if let adapter = iosDelegateAdapter {
-                room.delegates.remove(delegate: adapter)
-            }
-            iosDelegateAdapter = nil
+            // Remove all
+            for (_, adapter) in iosDelegateAdapters { room.delegates.remove(delegate: adapter) }
+            iosDelegateAdapters.removeAll()
         }
-        #endif
         #endif
     }
 }
