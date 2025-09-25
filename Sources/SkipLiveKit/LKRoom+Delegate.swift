@@ -71,7 +71,23 @@ extension LKRoom {
             self.owner = owner
             self.delegate = delegate
         }
-        func roomDidConnect(_ room: LiveKit.Room) { if let o = owner { delegate?.lk_roomDidConnect(o) } }
+        func roomDidConnect(_ room: LiveKit.Room) {
+            if let o = owner {
+                delegate?.lk_roomDidConnect(o)
+                // Deliver initial attributes snapshot for existing remote participants
+                for (_, rp) in room.remoteParticipants {
+                    let attrs = rp.attributes
+                    if !attrs.isEmpty {
+                        let id = rp.identity?.stringValue ?? "<unknown>"
+                        let keys = Array(attrs.keys)
+                        print("Skip→Swift(iOS): initial didUpdateAttributes snapshot identity=\(id) keys=\(keys)")
+                        DispatchQueue.main.async {
+                            self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(rp), attributes: attrs)
+                        }
+                    }
+                }
+            }
+        }
         func roomIsReconnecting(_ room: LiveKit.Room) { if let o = owner { delegate?.lk_roomIsReconnecting(o) } }
         func roomDidReconnect(_ room: LiveKit.Room) { if let o = owner { delegate?.lk_roomDidReconnect(o) } }
         func room(_ room: LiveKit.Room, didDisconnectWithError error: LiveKit.LiveKitError?) { if let o = owner { delegate?.lk_roomDidDisconnect(o, error: error) } }
