@@ -18,6 +18,8 @@ public final class LKRoom {
     #if SKIP
     public let room: io.livekit.android.room.Room
     internal var androidEventJob: kotlinx.coroutines.Job?
+    internal var cachedAgentIdentity: String?
+    internal var lastIsAgentByIdentity: [String: Bool] = [:]
 
     public init() {
         let context = skip.foundation.ProcessInfo.processInfo.androidContext
@@ -56,10 +58,20 @@ public final class LKRoom {
     }
 
     public var agentParticipant: LKParticipant? {
+        // Prefer cached identity if available and still present
+        if let id = cachedAgentIdentity {
+            if let p = participant(identity: id) { return p }
+        }
+        // Prefer remote agents
         for p in room.remoteParticipants.values {
             let wrapped = LKParticipant(p)
-            if wrapped.isAgent { return wrapped }
+            if wrapped.isAgent {
+                return wrapped
+            }
         }
+        // Fallback: local participant if it appears to be an agent
+        let localWrapped = LKParticipant(room.localParticipant)
+        if localWrapped.isAgent { return localWrapped }
         return nil
     }
 
@@ -91,7 +103,6 @@ public final class LKRoom {
         return map
     }
 
-    // MARK: - Participant Lookup
     public var localIdentity: String? { room.localParticipant.identity?.value }
 
     public func participant(identity: String) -> LKParticipant? {
@@ -114,6 +125,40 @@ public final class LKRoom {
     }
 
     public var agentIdentity: String? { agentParticipant?.identity }
+    
+    // MARK: - Internal helpers (SKIP)
+    internal func updateIsAgentCacheAndLog(for identity: String) {
+        guard let p = participant(identity: identity) else { return }
+        let newVal = p.isAgent
+        let oldVal = lastIsAgentByIdentity[identity]
+        lastIsAgentByIdentity[identity] = newVal
+        if oldVal != newVal {
+            // Find reason by evaluating rules roughly
+            var reason = "heuristic"
+            let attrs = p.attributes
+            if attrs["lk.agent"]?.lowercased() == "true" { reason = "attributes.lk.agent" }
+            else if attrs["lk.type"]?.lowercased() == "agent" { reason = "attributes.lk.type" }
+            else if attrs.keys.contains("lk.agent.state") { reason = "attributes.lk.agent.state" }
+            else if let meta = p.metadata, let data = meta.data(using: .utf8),
+                     let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                     ((obj["role"] as? String)?.lowercased() == "agent") || (obj["is_agent"] as? Bool == true) || ((obj["kind"] as? String)?.lowercased() == "agent") || ((obj["type"] as? String)?.lowercased() == "agent") { reason = "metadata" }
+            else if (p.identity ?? "").lowercased().hasPrefix("agent-") { reason = "identity-prefix" }
+            print("Skip LiveKit: isAgent=\(newVal) for identity=\(identity) (reason=\(reason))")
+        }
+    }
+
+    internal func recomputeAgentParticipantAndLog() {
+        let before = cachedAgentIdentity
+        let newAgent = self.agentParticipant?.identity
+        cachedAgentIdentity = newAgent
+        if before != newAgent {
+            if let id = newAgent {
+                print("Skip LiveKit: agentParticipant=identity=\(id)")
+            } else {
+                print("Skip LiveKit: agentParticipant cleared")
+            }
+        }
+    }
     #else
     public let room: LiveKit.Room
     internal var iosDelegateAdapter: LiveKit.RoomDelegate?
@@ -175,7 +220,6 @@ public final class LKRoom {
     public var isSpeakerOutputPreferred: Bool { false }
     #endif
 
-    // MARK: - Participant Lookup
     public var localIdentity: String? { room.localParticipant.identity?.stringValue }
 
     public func participant(identity: String) -> LKParticipant? {

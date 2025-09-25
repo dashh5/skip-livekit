@@ -106,17 +106,96 @@ extension LKRoom {
             try? await owner.room.events.collect { e in
                 switch e {
                 case is io.livekit.android.events.RoomEvent.Connected:
-                    delegate.lk_roomDidConnect(owner)
+                    print("Skip LiveKit: Room connected")
+                    try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        delegate.lk_roomDidConnect(owner)
+                    }
+                    // Post-connect validation logs for each remote participant
+                    for rp in owner.room.remoteParticipants.values {
+                        let id = rp.identity?.value ?? "<unknown>"
+                        let attrsKeys = Array(rp.attributes.keys)
+                        let hasState = rp.attributes.keys.contains("lk.agent.state")
+                        let wrapped = LKParticipant(rp)
+                        let meta = rp.metadata ?? "<nil>"
+                        var full: [String: String] = [:]
+                        for (k, v) in rp.attributes { full[k] = v }
+                        print("Skip LiveKit: post-connect participants: id=\(id) isAgent=\(wrapped.isAgent) attrsKeys=\(attrsKeys) hasState=\(hasState) metadata=\(meta) attrs=\(full)")
+                        // If backend encodes agent state in metadata, mirror it as an attributes update for Swift bridge
+                        if !hasState, let jsonStr = rp.metadata, let data = jsonStr.data(using: .utf8),
+                           let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                           let state = obj["lk.agent.state"] as? String {
+                            let mirrored: [String: String] = ["lk.agent.state": state]
+                            print("Skip LiveKit: metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
+                            try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(rp), attributes: mirrored)
+                            }
+                        }
+                        owner.updateIsAgentCacheAndLog(for: id)
+                    }
+                    owner.recomputeAgentParticipantAndLog()
                 case is io.livekit.android.events.RoomEvent.Reconnecting:
-                    delegate.lk_roomIsReconnecting(owner)
+                    print("Skip LiveKit: Room reconnecting")
+                    try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        delegate.lk_roomIsReconnecting(owner)
+                    }
                 case is io.livekit.android.events.RoomEvent.Reconnected:
-                    delegate.lk_roomDidReconnect(owner)
+                    print("Skip LiveKit: Room reconnected")
+                    try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        delegate.lk_roomDidReconnect(owner)
+                    }
                 case is io.livekit.android.events.RoomEvent.Disconnected:
-                    delegate.lk_roomDidDisconnect(owner, error: nil)
+                    print("Skip LiveKit: Room disconnected")
+                    try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        delegate.lk_roomDidDisconnect(owner, error: nil)
+                    }
                 case let ev as io.livekit.android.events.RoomEvent.ParticipantAttributesChanged:
                     var changed: [String: String] = [:]
                     for (k, v) in ev.changedAttributes { changed[k] = v }
-                    delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(ev.participant), attributes: changed)
+                    let identity = ev.participant.identity?.value ?? "<unknown>"
+                    let keys = Array(changed.keys)
+                    print("Skip LiveKit: attrs changed identity=\(identity) keys=\(keys)")
+                    // Pass through exactly as-is; preserve key casing
+                    print("Skip→Swift: calling didUpdateAttributes for identity=\(identity)")
+                    try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(ev.participant), attributes: changed)
+                    }
+                    owner.updateIsAgentCacheAndLog(for: identity)
+                    owner.recomputeAgentParticipantAndLog()
+                case let ev as io.livekit.android.events.RoomEvent.ParticipantConnected:
+                    let id = ev.participant.identity?.value ?? "<unknown>"
+                    print("Skip LiveKit: participant connected identity=\(id)")
+                    try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        delegate.lk_roomParticipantConnected(owner, participant: LKParticipant(ev.participant))
+                    }
+                    owner.updateIsAgentCacheAndLog(for: id)
+                    owner.recomputeAgentParticipantAndLog()
+                case let ev as io.livekit.android.events.RoomEvent.ParticipantDisconnected:
+                    let id = ev.participant.identity?.value ?? "<unknown>"
+                    print("Skip LiveKit: participant disconnected identity=\(id)")
+                    try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        delegate.lk_roomParticipantDisconnected(owner, participant: LKParticipant(ev.participant))
+                    }
+                    owner.lastIsAgentByIdentity.removeValue(forKey: id)
+                    if owner.cachedAgentIdentity == id { owner.cachedAgentIdentity = nil }
+                    owner.recomputeAgentParticipantAndLog()
+                case let ev as io.livekit.android.events.RoomEvent.ParticipantMetadataChanged:
+                    let id = ev.participant.identity?.value ?? "<unknown>"
+                    // Mirror select metadata fields into attributes for bridging if present
+                    var mirrored: [String: String] = [:]
+                    if let meta = ev.participant.metadata, let data = meta.data(using: .utf8),
+                       let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                        if let state = obj["lk.agent.state"] as? String {
+                            mirrored["lk.agent.state"] = state
+                        }
+                    }
+                    if !mirrored.isEmpty {
+                        print("Skip LiveKit: metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
+                        try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(ev.participant), attributes: mirrored)
+                        }
+                    }
+                    owner.updateIsAgentCacheAndLog(for: id)
+                    owner.recomputeAgentParticipantAndLog()
                 default:
                     break
                 }

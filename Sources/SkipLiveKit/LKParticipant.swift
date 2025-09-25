@@ -25,11 +25,28 @@ public class LKParticipant {
     }
 
     public var isAgent: Bool {
+        // Primary: SDK-reported kind
         if participant.kind == io.livekit.android.room.participant.Participant.Kind.AGENT { return true }
         let attrs = self.attributes
+        // Attributes based signals
         if attrs["lk.agent"]?.lowercased() == "true" { return true }
+        if attrs["lk.type"]?.lowercased() == "agent" { return true }
         if attrs.keys.contains("lk.agent.state") { return true }
-        if let meta = participant.metadata?.lowercased(), meta.contains("agent") { return true }
+        // Metadata JSON signals
+        if let meta = participant.metadata {
+            if let data = meta.data(using: .utf8) {
+                if let obj = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                    if let role = obj["role"] as? String, role.lowercased() == "agent" { return true }
+                    if let isAgent = obj["is_agent"] as? Bool, isAgent { return true }
+                    if let kind = obj["kind"] as? String, kind.lowercased() == "agent" { return true }
+                    if let type = obj["type"] as? String, type.lowercased() == "agent" { return true }
+                }
+            } else if meta.lowercased().contains("agent") {
+                // Last resort: raw string contains agent
+                return true
+            }
+        }
+        // Heuristic: identity prefix
         if let id = identity?.lowercased(), id.hasPrefix("agent-") { return true }
         return false
     }
