@@ -26,7 +26,6 @@ public class LKParticipant {
 
     public var isAgent: Bool {
         if participant.kind == io.livekit.android.room.participant.Participant.Kind.AGENT { return true }
-        // Heuristics
         let attrs = self.attributes
         if attrs["lk.agent"]?.lowercased() == "true" { return true }
         if attrs.keys.contains("lk.agent.state") { return true }
@@ -36,7 +35,6 @@ public class LKParticipant {
     }
 
     public var agentStateString: String {
-        // Android exposes agent state inside attributes; use AgentTypes if present
         let raw = participant.attributes["lk.agent.state"] ?? "idle"
         return raw
     }
@@ -90,8 +88,6 @@ public final class LKLocalParticipant: LKParticipant {
 
     public func performRpc(destinationIdentity: String, method: String, payload: String, responseTimeoutSeconds: Double = 10) async throws -> String {
         let id = io.livekit.android.room.participant.Participant.Identity(destinationIdentity)
-        // Use default timeout via Companion to avoid passing Duration from Swift
-        // Call overload without responseTimeout to avoid Companion lookup in transpiled code
         return try await local.performRpc(destinationIdentity: id, method: method, payload: payload)
     }
 

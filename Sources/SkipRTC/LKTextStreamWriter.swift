@@ -17,11 +17,9 @@ public final class LKTextStreamWriter: @unchecked Sendable {
     public var isOpen: Bool { false }
 
     public func write(_ text: String) async throws {
-        // no-op during SKIP transpile tests
     }
 
     public func close(reason: String? = nil) async throws {
-        // no-op
     }
     #else
     public let writer: LiveKit.TextStreamWriter

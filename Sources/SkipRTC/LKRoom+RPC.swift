@@ -14,7 +14,6 @@ public extension LKRoom {
 
     func registerRpcMethod(_ method: String, handler: @escaping LKRpcHandler) async throws {
         room.registerRpcMethod(method: method) { data in
-            // Convert to Swift async by bridging suspend
             return try await handler(data as Any)
         }
     }

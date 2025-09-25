@@ -17,7 +17,6 @@ public final class LKRoom {
     }
     #if SKIP
     public let room: io.livekit.android.room.Room
-    // Android event forwarding job
     internal var androidEventJob: kotlinx.coroutines.Job?
 
     public init() {
@@ -57,7 +56,6 @@ public final class LKRoom {
     }
 
     public var agentParticipant: LKParticipant? {
-        // Prefer participants that satisfy isAgent() wrapper logic
         for p in room.remoteParticipants.values {
             let wrapped = LKParticipant(p)
             if wrapped.isAgent { return wrapped }
@@ -68,12 +66,10 @@ public final class LKRoom {
     // MARK: - Audio Route
     public var isSpeakerOutputPreferred: Bool {
         get {
-            // Prefer speakerphone if selected device is speaker
             return room.audioSwitchHandler?.selectedAudioDevice is com.twilio.audioswitch.AudioDevice.Speakerphone
         }
         set {
             guard let handler = room.audioSwitchHandler else { return }
-            // Find existing devices rather than constructing
             let devices = handler.availableAudioDevices
             if newValue {
                 var found: com.twilio.audioswitch.AudioDevice? = nil
@@ -120,7 +116,6 @@ public final class LKRoom {
     public var agentIdentity: String? { agentParticipant?.identity }
     #else
     public let room: LiveKit.Room
-    // Store adapters so they can be removed later (supports multiple delegates)
     internal var iosDelegateAdapter: LiveKit.RoomDelegate?
     internal var iosDelegateAdapters: [ObjectIdentifier: LiveKit.RoomDelegate] = [:]
 

@@ -37,10 +37,9 @@ public extension LKRoomDelegate {
 }
 
 extension LKRoom {
-    // MARK: - Public delegate management (mirrors LiveKit API names)
+    // MARK: - Delegate management
     public func add(delegate: LKRoomDelegate) {
         #if SKIP
-        // Start forwarding if not already. Multiple delegates can be layered via your app.
         startAndroidEventForwarding(to: delegate)
         #else
         let key = ObjectIdentifier(delegate)
@@ -55,7 +54,6 @@ extension LKRoom {
 
     public func remove(delegate: LKRoomDelegate) {
         #if SKIP
-        // No per-delegate tracking yet; stop global forwarding
         androidEventJob?.cancel()
         androidEventJob = nil
         #else
@@ -102,11 +100,9 @@ extension LKRoom {
 
     #if SKIP
     private func startAndroidEventForwarding(to delegate: LKRoomDelegate) {
-        // Cancel previous
         androidEventJob?.cancel()
-        // Launch collector
+        let owner = self
         androidEventJob = kotlinx.coroutines.GlobalScope.launch {
-            let owner = self
             try? await owner.room.events.collect { e in
                 switch e {
                 case is io.livekit.android.events.RoomEvent.Connected:
@@ -116,7 +112,6 @@ extension LKRoom {
                 case is io.livekit.android.events.RoomEvent.Reconnected:
                     delegate.lk_roomDidReconnect(owner)
                 case is io.livekit.android.events.RoomEvent.Disconnected:
-                    // Pass nil to avoid Exception vs Error type mismatch in transpile
                     delegate.lk_roomDidDisconnect(owner, error: nil)
                 case let ev as io.livekit.android.events.RoomEvent.ParticipantAttributesChanged:
                     var changed: [String: String] = [:]

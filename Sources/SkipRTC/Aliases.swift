@@ -2,8 +2,6 @@
 
 import Foundation
 
-// Public typealiases to mirror LiveKit's public API names.
-
 public typealias Room = LKRoom
 public typealias Participant = LKParticipant
 public typealias RemoteParticipant = LKRemoteParticipant
@@ -16,8 +14,6 @@ public typealias ByteStreamWriter = LKByteStreamWriter
 
 public typealias RoomDelegate = LKRoomDelegate
 public typealias ConnectionState = LKRoom.LKConnectionState
-
-// Stream info is provided cross-platform as LKTextStreamInfo
 
 public extension LKParticipant {
     typealias Identity = String

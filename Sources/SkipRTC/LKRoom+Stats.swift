@@ -32,10 +32,7 @@ public extension LKRoom {
         completion(LKStatsSnapshot(rttMs: nil, publisherReportJson: pub, subscriberReportJson: sub))
     }
     #else
-    func getStatsSnapshot() async -> LKStatsSnapshot {
-        // RTT is not publicly exposed; return nil for now. Users can compute from delegates if needed.
-        return LKStatsSnapshot(rttMs: nil, publisherReportJson: nil, subscriberReportJson: nil)
-    }
+    func getStatsSnapshot() async -> LKStatsSnapshot { LKStatsSnapshot(rttMs: nil, publisherReportJson: nil, subscriberReportJson: nil) }
     #endif
 }
 

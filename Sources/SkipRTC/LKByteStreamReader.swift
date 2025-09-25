@@ -14,7 +14,6 @@ public final class LKByteStreamReader: @unchecked Sendable {
     init(_ receiver: io.livekit.android.room.datastream.incoming.ByteStreamReceiver) { self.android = receiver }
 
     public func readAll() async throws -> Data {
-        // Disable byte accumulation on SKIP for now to avoid ByteArray/UByte bridging issues.
         return Data()
     }
     #else
