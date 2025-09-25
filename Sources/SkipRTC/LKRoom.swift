@@ -57,9 +57,10 @@ public final class LKRoom {
     }
 
     public var agentParticipant: LKParticipant? {
-        // Find first AGENT participant without using higher-order functions
+        // Prefer participants that satisfy isAgent() wrapper logic
         for p in room.remoteParticipants.values {
-            if p.kind == io.livekit.android.room.participant.Participant.Kind.AGENT { return LKParticipant(p) }
+            let wrapped = LKParticipant(p)
+            if wrapped.isAgent { return wrapped }
         }
         return nil
     }

@@ -25,7 +25,14 @@ public class LKParticipant {
     }
 
     public var isAgent: Bool {
-        participant.kind == io.livekit.android.room.participant.Participant.Kind.AGENT
+        if participant.kind == io.livekit.android.room.participant.Participant.Kind.AGENT { return true }
+        // Heuristics
+        let attrs = self.attributes
+        if attrs["lk.agent"]?.lowercased() == "true" { return true }
+        if attrs.keys.contains("lk.agent.state") { return true }
+        if let meta = participant.metadata?.lowercased(), meta.contains("agent") { return true }
+        if let id = identity?.lowercased(), id.hasPrefix("agent-") { return true }
+        return false
     }
 
     public var agentStateString: String {

@@ -102,7 +102,31 @@ extension LKRoom {
 
     #if SKIP
     private func startAndroidEventForwarding(to delegate: LKRoomDelegate) {
-        // Disable event forwarding during SKIP transpile tests to avoid coroutine/flow bridging issues
+        // Cancel previous
+        androidEventJob?.cancel()
+        // Launch collector
+        androidEventJob = kotlinx.coroutines.GlobalScope.launch {
+            let owner = self
+            try? await owner.room.events.collect { e in
+                switch e {
+                case is io.livekit.android.events.RoomEvent.Connected:
+                    delegate.lk_roomDidConnect(owner)
+                case is io.livekit.android.events.RoomEvent.Reconnecting:
+                    delegate.lk_roomIsReconnecting(owner)
+                case is io.livekit.android.events.RoomEvent.Reconnected:
+                    delegate.lk_roomDidReconnect(owner)
+                case is io.livekit.android.events.RoomEvent.Disconnected:
+                    // Pass nil to avoid Exception vs Error type mismatch in transpile
+                    delegate.lk_roomDidDisconnect(owner, error: nil)
+                case let ev as io.livekit.android.events.RoomEvent.ParticipantAttributesChanged:
+                    var changed: [String: String] = [:]
+                    for (k, v) in ev.changedAttributes { changed[k] = v }
+                    delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(ev.participant), attributes: changed)
+                default:
+                    break
+                }
+            }
+        }
     }
     #endif
 
