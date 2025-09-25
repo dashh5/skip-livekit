@@ -139,7 +139,7 @@ public final class LKRoom {
             if attrs["lk.agent"]?.lowercased() == "true" { reason = "attributes.lk.agent" }
             else if attrs["lk.type"]?.lowercased() == "agent" { reason = "attributes.lk.type" }
             else if attrs.keys.contains("lk.agent.state") { reason = "attributes.lk.agent.state" }
-            else if let meta = p.metadata, let data = meta.data(using: .utf8),
+            else if let meta = p.metadata, let data = meta.data(using: String.Encoding.utf8),
                      let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                      ((obj["role"] as? String)?.lowercased() == "agent") || (obj["is_agent"] as? Bool == true) || ((obj["kind"] as? String)?.lowercased() == "agent") || ((obj["type"] as? String)?.lowercased() == "agent") { reason = "metadata" }
             else if (p.identity ?? "").lowercased().hasPrefix("agent-") { reason = "identity-prefix" }

@@ -121,7 +121,7 @@ extension LKRoom {
                         for (k, v) in rp.attributes { full[k] = v }
                         print("Skip LiveKit: post-connect participants: id=\(id) isAgent=\(wrapped.isAgent) attrsKeys=\(attrsKeys) hasState=\(hasState) metadata=\(meta) attrs=\(full)")
                         // If backend encodes agent state in metadata, mirror it as an attributes update for Swift bridge
-                        if !hasState, let jsonStr = rp.metadata, let data = jsonStr.data(using: .utf8),
+                        if !hasState, let jsonStr = rp.metadata, let data = jsonStr.data(using: String.Encoding.utf8),
                            let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                            let state = obj["lk.agent.state"] as? String {
                             let mirrored: [String: String] = ["lk.agent.state": state]
@@ -182,7 +182,7 @@ extension LKRoom {
                     let id = ev.participant.identity?.value ?? "<unknown>"
                     // Mirror select metadata fields into attributes for bridging if present
                     var mirrored: [String: String] = [:]
-                    if let meta = ev.participant.metadata, let data = meta.data(using: .utf8),
+                    if let meta = ev.participant.metadata, let data = meta.data(using: String.Encoding.utf8),
                        let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
                         if let state = obj["lk.agent.state"] as? String {
                             mirrored["lk.agent.state"] = state

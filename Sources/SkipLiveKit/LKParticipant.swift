@@ -34,7 +34,7 @@ public class LKParticipant {
         if attrs.keys.contains("lk.agent.state") { return true }
         // Metadata JSON signals
         if let meta = participant.metadata {
-            if let data = meta.data(using: .utf8) {
+            if let data = meta.data(using: String.Encoding.utf8) {
                 if let obj = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
                     if let role = obj["role"] as? String, role.lowercased() == "agent" { return true }
                     if let isAgent = obj["is_agent"] as? Bool, isAgent { return true }
