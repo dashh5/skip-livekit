@@ -1,4 +1,4 @@
-# SkipRTC
+# SkipLiveKit
 
 This is a free [Skip](https://skip.tools) Swift/Kotlin library project containing support for WebRTC using the LiveKit [Android](https://github.com/livekit/client-sdk-android) and [Swift](https://github.com/livekit/client-sdk-swift) SDKs.
 
