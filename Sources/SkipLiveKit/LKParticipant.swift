@@ -30,7 +30,10 @@ public class LKParticipant {
         let attrs = self.attributes
         // Attributes based signals
         if attrs["lk.agent"]?.lowercased() == "true" { return true }
+        if attrs["livekit.agent"]?.lowercased() == "true" { return true }
         if attrs["lk.type"]?.lowercased() == "agent" { return true }
+        if attrs["type"]?.lowercased() == "agent" { return true }
+        if attrs["kind"]?.lowercased() == "agent" { return true }
         if attrs.keys.contains("lk.agent.state") { return true }
         // Metadata JSON signals
         if let meta = participant.metadata {

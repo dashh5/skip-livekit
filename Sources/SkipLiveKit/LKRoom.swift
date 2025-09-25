@@ -137,7 +137,9 @@ public final class LKRoom {
             var reason = "heuristic"
             let attrs = p.attributes
             if attrs["lk.agent"]?.lowercased() == "true" { reason = "attributes.lk.agent" }
-            else if attrs["lk.type"]?.lowercased() == "agent" { reason = "attributes.lk.type" }
+            else if attrs["livekit.agent"]?.lowercased() == "true" { reason = "attributes.livekit.agent" }
+            else if attrs["lk.type"]?.lowercased() == "agent" || attrs["type"]?.lowercased() == "agent" { reason = "attributes.type" }
+            else if attrs["kind"]?.lowercased() == "agent" { reason = "attributes.kind" }
             else if attrs.keys.contains("lk.agent.state") { reason = "attributes.lk.agent.state" }
             else if let meta = p.metadata, let data = meta.data(using: String.Encoding.utf8),
                      let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
