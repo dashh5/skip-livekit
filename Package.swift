@@ -19,13 +19,25 @@ let package = Package(
         .package(url: "https://github.com/livekit/client-sdk-swift.git", from: "2.7.2"),
     ],
     targets: [
-        .target(name: "SkipLiveKit", path: "Sources/SkipLiveKit", dependencies: [
-            .product(name: "SkipUI", package: "skip-ui"),
-            .product(name: "LiveKit", package: "client-sdk-swift")
-        ], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
-        .testTarget(name: "SkipLiveKitTests", path: "Tests/SkipLiveKitTests", dependencies: [
-            "SkipLiveKit",
-            .product(name: "SkipTest", package: "skip")
-        ], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
+        .target(
+            name: "SkipLiveKit",
+            dependencies: [
+                .product(name: "SkipUI", package: "skip-ui"),
+                .product(name: "LiveKit", package: "client-sdk-swift")
+            ],
+            path: "Sources/SkipLiveKit",
+            resources: [.process("Resources")],
+            plugins: [.plugin(name: "skipstone", package: "skip")]
+        ),
+        .testTarget(
+            name: "SkipLiveKitTests",
+            dependencies: [
+                "SkipLiveKit",
+                .product(name: "SkipTest", package: "skip")
+            ],
+            path: "Tests/SkipLiveKitTests",
+            resources: [.process("Resources")],
+            plugins: [.plugin(name: "skipstone", package: "skip")]
+        ),
     ]
 )
