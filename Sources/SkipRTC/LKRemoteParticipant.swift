@@ -43,8 +43,8 @@ public final class LKRemoteParticipant: LKParticipant {
         }
     }
 
-    public var isSpeaking: Bool { participant.isSpeaking }
-    public var audioLevel: Float { participant.audioLevel }
+    public override var isSpeaking: Bool { participant.isSpeaking }
+    public override var audioLevel: Float { participant.audioLevel }
     public var publications: [String: Any] { [:] }
     #else
     public var remote: LiveKit.RemoteParticipant { participant as! LiveKit.RemoteParticipant }
@@ -75,8 +75,8 @@ public final class LKRemoteParticipant: LKParticipant {
         try await remoteVideoPublication()?.set(enabled: enabled)
     }
 
-    public var isSpeaking: Bool { participant.isSpeaking }
-    public var audioLevel: Float { participant.audioLevel }
+    public override var isSpeaking: Bool { participant.isSpeaking }
+    public override var audioLevel: Float { participant.audioLevel }
     public var publications: [String: LiveKit.TrackPublication] {
         var map: [String: LiveKit.TrackPublication] = [:]
         for (sid, pub) in remote.trackPublications { map[sid.stringValue] = pub }

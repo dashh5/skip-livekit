@@ -33,6 +33,9 @@ public class LKParticipant {
         let raw = participant.attributes["lk.agent.state"] ?? "idle"
         return raw
     }
+
+    public var isSpeaking: Bool { participant.isSpeaking }
+    public var audioLevel: Float { participant.audioLevel }
     #else
     public let participant: LiveKit.Participant
 
@@ -47,6 +50,9 @@ public class LKParticipant {
     public var isAgent: Bool { participant.isAgent }
 
     public var agentStateString: String { participant.agentStateString }
+
+    public var isSpeaking: Bool { participant.isSpeaking }
+    public var audioLevel: Float { participant.audioLevel }
     #endif
 }
 
