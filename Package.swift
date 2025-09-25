@@ -7,11 +7,11 @@
 import PackageDescription
 
 let package = Package(
-    name: "skip-rtc",
+    name: "skip-livekit",
     defaultLocalization: "en",
     platforms: [.iOS(.v17), .macOS(.v14), .tvOS(.v17), .watchOS(.v10), .macCatalyst(.v17)],
     products: [
-        .library(name: "SkipRTC", type: .dynamic, targets: ["SkipRTC"]),
+        .library(name: "SkipLiveKit", type: .dynamic, targets: ["SkipLiveKit"]),
     ],
     dependencies: [
         .package(url: "https://source.skip.tools/skip.git", from: "1.3.3"),
@@ -19,12 +19,12 @@ let package = Package(
         .package(url: "https://github.com/livekit/client-sdk-swift.git", from: "2.7.2"),
     ],
     targets: [
-        .target(name: "SkipRTC", dependencies: [
+        .target(name: "SkipLiveKit", path: "Sources/SkipRTC", dependencies: [
             .product(name: "SkipUI", package: "skip-ui"),
             .product(name: "LiveKit", package: "client-sdk-swift")
         ], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
-        .testTarget(name: "SkipRTCTests", dependencies: [
-            "SkipRTC",
+        .testTarget(name: "SkipLiveKitTests", path: "Tests/SkipRTCTests", dependencies: [
+            "SkipLiveKit",
             .product(name: "SkipTest", package: "skip")
         ], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
     ]

@@ -3,9 +3,9 @@
 import XCTest
 import OSLog
 import Foundation
-@testable import SkipRTC
+@testable import SkipLiveKit
 
-let logger: Logger = Logger(subsystem: "SkipRTC", category: "Tests")
+let logger: Logger = Logger(subsystem: "SkipLiveKit", category: "Tests")
 
 @available(macOS 13, *)
 final class SkipRTCTests: XCTestCase {
@@ -19,7 +19,7 @@ final class SkipRTCTests: XCTestCase {
         // load the TestData.json file from the Resources folder and decode it into a struct
         let resourceURL: URL = try XCTUnwrap(Bundle.module.url(forResource: "TestData", withExtension: "json"))
         let testData = try JSONDecoder().decode(TestData.self, from: Data(contentsOf: resourceURL))
-        XCTAssertEqual("SkipRTC", testData.testModuleName)
+        XCTAssertEqual("SkipLiveKit", testData.testModuleName)
     }
 
 }
