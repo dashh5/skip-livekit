@@ -120,6 +120,14 @@ extension LKRoom {
                         var full: [String: String] = [:]
                         for (k, v) in rp.attributes { full[k] = v }
                         print("Skip LiveKit: post-connect participants: id=\(id) isAgent=\(wrapped.isAgent) attrsKeys=\(attrsKeys) hasState=\(hasState) metadata=\(meta) attrs=\(full)")
+                        // Deliver initial attributes snapshot to Swift to avoid dead zone
+                        if !full.isEmpty {
+                            let initialKeys = Array(full.keys)
+                            print("Skip→Swift: initial didUpdateAttributes snapshot identity=\(id) keys=\(initialKeys)")
+                            try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(rp), attributes: full)
+                            }
+                        }
                         // If backend encodes agent state in metadata, mirror it as an attributes update for Swift bridge
                         if !hasState, let jsonStr = rp.metadata, let data = jsonStr.data(using: String.Encoding.utf8),
                            let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
