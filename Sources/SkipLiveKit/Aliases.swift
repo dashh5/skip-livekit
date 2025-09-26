@@ -12,7 +12,6 @@ public typealias TextStreamWriter = LKTextStreamWriter
 public typealias ByteStreamReader = LKByteStreamReader
 public typealias ByteStreamWriter = LKByteStreamWriter
 
-public typealias RoomDelegate = LKRoomDelegate
 public typealias ConnectionState = LKRoom.LKConnectionState
 
 public extension LKParticipant {
