@@ -111,7 +111,7 @@ extension LKRoom {
                         print("Skip→Swift(iOS): initial didUpdateAttributes snapshot identity=\(id) keys=\(keys)")
                         DispatchQueue.main.async {
                             self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(rp), attributes: attrs)
-                            self.delegate?.room(o, participant: LKParticipant(rp), didUpdateAttributes: attrs)
+                            (self.delegate as? LKRoomDelegateIOSCompat)?.room(o, participant: LKParticipant(rp), didUpdateAttributes: attrs)
                         }
                     }
                     // If backend encodes agent state in metadata, mirror it as an attributes update for Swift bridge
@@ -124,7 +124,7 @@ extension LKRoom {
                         print("Skip LiveKit(iOS): metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
                         DispatchQueue.main.async {
                             self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(rp), attributes: mirrored)
-                            self.delegate?.room(o, participant: LKParticipant(rp), didUpdateAttributes: mirrored)
+                            (self.delegate as? LKRoomDelegateIOSCompat)?.room(o, participant: LKParticipant(rp), didUpdateAttributes: mirrored)
                         }
                     }
                 }
