@@ -85,6 +85,18 @@ extension LKRoom {
                             self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(rp), attributes: attrs)
                         }
                     }
+                    // If backend encodes agent state in metadata, mirror it as an attributes update for Swift bridge
+                    let hasState = attrs.keys.contains("lk.agent.state")
+                    if !hasState, let jsonStr = rp.metadata, let data = jsonStr.data(using: String.Encoding.utf8),
+                       let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let state = obj["lk.agent.state"] as? String {
+                        let mirrored: [String: String] = ["lk.agent.state": state]
+                        let id = rp.identity?.stringValue ?? "<unknown>"
+                        print("Skip LiveKit(iOS): metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
+                        DispatchQueue.main.async {
+                            self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(rp), attributes: mirrored)
+                        }
+                    }
                 }
             }
         }
@@ -93,7 +105,11 @@ extension LKRoom {
         func room(_ room: LiveKit.Room, didDisconnectWithError error: LiveKit.LiveKitError?) { if let o = owner { delegate?.lk_roomDidDisconnect(o, error: error) } }
         func room(_ room: LiveKit.Room, participant: LiveKit.Participant, didUpdateAttributes attributes: [String : String]) {
             guard let o = owner else { return }
-            delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(participant), attributes: attributes)
+            let id = participant.identity?.stringValue ?? "<unknown>"
+            let keys = Array(attributes.keys)
+            DispatchQueue.main.async {
+                self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(participant), attributes: attributes)
+            }
         }
         func room(_ room: LiveKit.Room, participantDidConnect participant: LiveKit.RemoteParticipant) {
             guard let o = owner else { return }
@@ -110,6 +126,24 @@ extension LKRoom {
         func room(_ room: LiveKit.Room, didUpdateMetadata metadata: String?) {
             guard let o = owner else { return }
             delegate?.lk_roomMetadata(o, metadata: metadata)
+        }
+        func room(_ room: LiveKit.Room, participant: LiveKit.Participant, didUpdateMetadata metadata: String?) {
+            guard let o = owner else { return }
+            // Mirror select metadata fields into attributes for bridging if present
+            var mirrored: [String: String] = [:]
+            if let meta = metadata, let data = meta.data(using: String.Encoding.utf8),
+               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                if let state = obj["lk.agent.state"] as? String {
+                    mirrored["lk.agent.state"] = state
+                }
+            }
+            if !mirrored.isEmpty {
+                let id = participant.identity?.stringValue ?? "<unknown>"
+                print("Skip LiveKit(iOS): metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
+                DispatchQueue.main.async {
+                    self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(participant), attributes: mirrored)
+                }
+            }
         }
     }
     #endif
