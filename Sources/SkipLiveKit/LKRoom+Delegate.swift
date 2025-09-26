@@ -21,18 +21,6 @@ public protocol LKRoomDelegate: AnyObject {
     func lk_roomActiveSpeakers(_ room: LKRoom, speakers: [LKParticipant])
     func lk_roomMetadata(_ room: LKRoom, metadata: String?)
     func lk_roomData(_ room: LKRoom, data: Data, participant: LKParticipant?)
-
-    // iOS-native LiveKit-style API (optional; default no-ops)
-    func roomDidConnect(_ room: LKRoom)
-    func roomIsReconnecting(_ room: LKRoom)
-    func roomDidReconnect(_ room: LKRoom)
-    func room(_ room: LKRoom, didDisconnectWithError error: Error?)
-    func room(_ room: LKRoom, participant: LKParticipant, didUpdateAttributes attributes: [String: String])
-    func room(_ room: LKRoom, participantDidConnect participant: LKParticipant)
-    func room(_ room: LKRoom, participantDidDisconnect participant: LKParticipant)
-    func room(_ room: LKRoom, didUpdateSpeakingParticipants participants: [LKParticipant])
-    func room(_ room: LKRoom, didUpdateMetadata metadata: String?)
-    func room(_ room: LKRoom, didReceiveData data: Data, participant: LKParticipant?)
 }
 
 public extension LKRoomDelegate {
@@ -46,8 +34,23 @@ public extension LKRoomDelegate {
     func lk_roomActiveSpeakers(_ room: LKRoom, speakers: [LKParticipant]) {}
     func lk_roomMetadata(_ room: LKRoom, metadata: String?) {}
     func lk_roomData(_ room: LKRoom, data: Data, participant: LKParticipant?) {}
+}
 
-    // iOS-native LiveKit-style API defaults
+// Optional compatibility protocol exposing iOS-native LiveKit-style names.
+public protocol LKRoomDelegateIOSCompat: AnyObject {
+    func roomDidConnect(_ room: LKRoom)
+    func roomIsReconnecting(_ room: LKRoom)
+    func roomDidReconnect(_ room: LKRoom)
+    func room(_ room: LKRoom, didDisconnectWithError error: Error?)
+    func room(_ room: LKRoom, participant: LKParticipant, didUpdateAttributes attributes: [String: String])
+    func room(_ room: LKRoom, participantDidConnect participant: LKParticipant)
+    func room(_ room: LKRoom, participantDidDisconnect participant: LKParticipant)
+    func room(_ room: LKRoom, didUpdateSpeakingParticipants participants: [LKParticipant])
+    func room(_ room: LKRoom, didUpdateMetadata metadata: String?)
+    func room(_ room: LKRoom, didReceiveData data: Data, participant: LKParticipant?)
+}
+
+public extension LKRoomDelegateIOSCompat {
     func roomDidConnect(_ room: LKRoom) {}
     func roomIsReconnecting(_ room: LKRoom) {}
     func roomDidReconnect(_ room: LKRoom) {}
@@ -98,7 +101,7 @@ extension LKRoom {
         func roomDidConnect(_ room: LiveKit.Room) {
             if let o = owner {
                 delegate?.lk_roomDidConnect(o)
-                delegate?.roomDidConnect(o)
+                (delegate as? LKRoomDelegateIOSCompat)?.roomDidConnect(o)
                 // Deliver initial attributes snapshot for existing remote participants
                 for (_, rp) in room.remoteParticipants {
                     let attrs = rp.attributes
@@ -127,22 +130,22 @@ extension LKRoom {
                 }
             }
         }
-        func roomIsReconnecting(_ room: LiveKit.Room) { if let o = owner { delegate?.lk_roomIsReconnecting(o); delegate?.roomIsReconnecting(o) } }
-        func roomDidReconnect(_ room: LiveKit.Room) { if let o = owner { delegate?.lk_roomDidReconnect(o); delegate?.roomDidReconnect(o) } }
-        func room(_ room: LiveKit.Room, didDisconnectWithError error: LiveKit.LiveKitError?) { if let o = owner { delegate?.lk_roomDidDisconnect(o, error: error); delegate?.room(o, didDisconnectWithError: error) } }
+        func roomIsReconnecting(_ room: LiveKit.Room) { if let o = owner { delegate?.lk_roomIsReconnecting(o); (delegate as? LKRoomDelegateIOSCompat)?.roomIsReconnecting(o) } }
+        func roomDidReconnect(_ room: LiveKit.Room) { if let o = owner { delegate?.lk_roomDidReconnect(o); (delegate as? LKRoomDelegateIOSCompat)?.roomDidReconnect(o) } }
+        func room(_ room: LiveKit.Room, didDisconnectWithError error: LiveKit.LiveKitError?) { if let o = owner { delegate?.lk_roomDidDisconnect(o, error: error); (delegate as? LKRoomDelegateIOSCompat)?.room(o, didDisconnectWithError: error) } }
         func room(_ room: LiveKit.Room, participant: LiveKit.Participant, didUpdateAttributes attributes: [String : String]) {
             guard let o = owner else { return }
             let id = participant.identity?.stringValue ?? "<unknown>"
             let keys = Array(attributes.keys)
             DispatchQueue.main.async {
                 self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(participant), attributes: attributes)
-                self.delegate?.room(o, participant: LKParticipant(participant), didUpdateAttributes: attributes)
+                (self.delegate as? LKRoomDelegateIOSCompat)?.room(o, participant: LKParticipant(participant), didUpdateAttributes: attributes)
             }
         }
         func room(_ room: LiveKit.Room, participantDidConnect participant: LiveKit.RemoteParticipant) {
             guard let o = owner else { return }
             delegate?.lk_roomParticipantConnected(o, participant: LKParticipant(participant))
-            delegate?.room(o, participantDidConnect: LKParticipant(participant))
+            (delegate as? LKRoomDelegateIOSCompat)?.room(o, participantDidConnect: LKParticipant(participant))
             // Immediately deliver initial attributes snapshot for newly joined participant
             let attrs = participant.attributes
             if !attrs.isEmpty {
@@ -151,7 +154,7 @@ extension LKRoom {
                 print("Skip→Swift(iOS): join snapshot didUpdateAttributes identity=\(id) keys=\(keys)")
                 DispatchQueue.main.async {
                     self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(participant), attributes: attrs)
-                    self.delegate?.room(o, participant: LKParticipant(participant), didUpdateAttributes: attrs)
+                    (self.delegate as? LKRoomDelegateIOSCompat)?.room(o, participant: LKParticipant(participant), didUpdateAttributes: attrs)
                 }
             }
             // Mirror metadata state if needed
@@ -164,25 +167,25 @@ extension LKRoom {
                 print("Skip LiveKit(iOS): join metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
                 DispatchQueue.main.async {
                     self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(participant), attributes: mirrored)
-                    self.delegate?.room(o, participant: LKParticipant(participant), didUpdateAttributes: mirrored)
+                    (self.delegate as? LKRoomDelegateIOSCompat)?.room(o, participant: LKParticipant(participant), didUpdateAttributes: mirrored)
                 }
             }
         }
         func room(_ room: LiveKit.Room, participantDidDisconnect participant: LiveKit.RemoteParticipant) {
             guard let o = owner else { return }
             delegate?.lk_roomParticipantDisconnected(o, participant: LKParticipant(participant))
-            delegate?.room(o, participantDidDisconnect: LKParticipant(participant))
+            (delegate as? LKRoomDelegateIOSCompat)?.room(o, participantDidDisconnect: LKParticipant(participant))
         }
         func room(_ room: LiveKit.Room, didUpdateSpeakingParticipants participants: [LiveKit.Participant]) {
             guard let o = owner else { return }
             let wrapped = participants.map { LKParticipant($0) }
             delegate?.lk_roomActiveSpeakers(o, speakers: wrapped)
-            delegate?.room(o, didUpdateSpeakingParticipants: wrapped)
+            (delegate as? LKRoomDelegateIOSCompat)?.room(o, didUpdateSpeakingParticipants: wrapped)
         }
         func room(_ room: LiveKit.Room, didUpdateMetadata metadata: String?) {
             guard let o = owner else { return }
             delegate?.lk_roomMetadata(o, metadata: metadata)
-            delegate?.room(o, didUpdateMetadata: metadata)
+            (delegate as? LKRoomDelegateIOSCompat)?.room(o, didUpdateMetadata: metadata)
         }
         func room(_ room: LiveKit.Room, participant: LiveKit.Participant, didUpdateMetadata metadata: String?) {
             guard let o = owner else { return }
@@ -199,7 +202,7 @@ extension LKRoom {
                 print("Skip LiveKit(iOS): metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
                 DispatchQueue.main.async {
                     self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(participant), attributes: mirrored)
-                    self.delegate?.room(o, participant: LKParticipant(participant), didUpdateAttributes: mirrored)
+                    (self.delegate as? LKRoomDelegateIOSCompat)?.room(o, participant: LKParticipant(participant), didUpdateAttributes: mirrored)
                 }
             }
         }
