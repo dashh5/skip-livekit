@@ -366,7 +366,7 @@ extension LKRoom {
                     if !mirrored.isEmpty {
                         print("Skip LiveKit: metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
                         try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                            delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(ev.participant), attributes: mirrored)
+                            delegate.room(owner, participant: LKParticipant(ev.participant), didUpdateAttributes: mirrored)
                             #if !SKIP
                             (delegate as? LKRoomDelegateIOSCompat)?.room(owner, participant: LKParticipant(ev.participant), didUpdateAttributes: mirrored)
                             #endif
