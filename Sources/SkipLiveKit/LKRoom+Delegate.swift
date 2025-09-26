@@ -15,7 +15,7 @@ public protocol LKRoomDelegate: AnyObject {
     func lk_roomIsReconnecting(_ room: LKRoom)
     func lk_roomDidReconnect(_ room: LKRoom)
     func lk_roomDidDisconnect(_ room: LKRoom, error: Error?)
-    func lk_roomParticipantAttributes(_ room: LKRoom, participant: LKParticipant, attributes: [String: String])
+    func room(_ room: LKRoom, participant: LKParticipant, didUpdateAttributes attributes: [String: String])
     func lk_roomParticipantConnected(_ room: LKRoom, participant: LKParticipant)
     func lk_roomParticipantDisconnected(_ room: LKRoom, participant: LKParticipant)
     func lk_roomActiveSpeakers(_ room: LKRoom, speakers: [LKParticipant])
@@ -28,7 +28,7 @@ public extension LKRoomDelegate {
     func lk_roomIsReconnecting(_ room: LKRoom) {}
     func lk_roomDidReconnect(_ room: LKRoom) {}
     func lk_roomDidDisconnect(_ room: LKRoom, error: Error?) {}
-    func lk_roomParticipantAttributes(_ room: LKRoom, participant: LKParticipant, attributes: [String: String]) {}
+    func room(_ room: LKRoom, participant: LKParticipant, didUpdateAttributes attributes: [String: String]) {}
     func lk_roomParticipantConnected(_ room: LKRoom, participant: LKParticipant) {}
     func lk_roomParticipantDisconnected(_ room: LKRoom, participant: LKParticipant) {}
     func lk_roomActiveSpeakers(_ room: LKRoom, speakers: [LKParticipant]) {}
@@ -112,7 +112,7 @@ extension LKRoom {
                         let keys = Array(attrs.keys)
                         print("Skip→Swift(iOS): initial didUpdateAttributes snapshot identity=\(id) keys=\(keys)")
                         DispatchQueue.main.async {
-                            self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(rp), attributes: attrs)
+                            self.delegate?.room(o, participant: LKParticipant(rp), didUpdateAttributes: attrs)
                             (self.delegate as? LKRoomDelegateIOSCompat)?.room(o, participant: LKParticipant(rp), didUpdateAttributes: attrs)
                         }
                     }
@@ -125,7 +125,7 @@ extension LKRoom {
                         let id = rp.identity?.stringValue ?? "<unknown>"
                         print("Skip LiveKit(iOS): metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
                         DispatchQueue.main.async {
-                            self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(rp), attributes: mirrored)
+                            self.delegate?.room(o, participant: LKParticipant(rp), didUpdateAttributes: mirrored)
                             (self.delegate as? LKRoomDelegateIOSCompat)?.room(o, participant: LKParticipant(rp), didUpdateAttributes: mirrored)
                         }
                     }
@@ -140,7 +140,7 @@ extension LKRoom {
             let id = participant.identity?.stringValue ?? "<unknown>"
             let keys = Array(attributes.keys)
             DispatchQueue.main.async {
-                self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(participant), attributes: attributes)
+                self.delegate?.room(o, participant: LKParticipant(participant), didUpdateAttributes: attributes)
                 (self.delegate as? LKRoomDelegateIOSCompat)?.room(o, participant: LKParticipant(participant), didUpdateAttributes: attributes)
             }
         }
@@ -155,7 +155,7 @@ extension LKRoom {
                 let keys = Array(attrs.keys)
                 print("Skip→Swift(iOS): join snapshot didUpdateAttributes identity=\(id) keys=\(keys)")
                 DispatchQueue.main.async {
-                    self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(participant), attributes: attrs)
+                    self.delegate?.room(o, participant: LKParticipant(participant), didUpdateAttributes: attrs)
                     (self.delegate as? LKRoomDelegateIOSCompat)?.room(o, participant: LKParticipant(participant), didUpdateAttributes: attrs)
                 }
             }
@@ -168,7 +168,7 @@ extension LKRoom {
                 let mirrored = ["lk.agent.state": state]
                 print("Skip LiveKit(iOS): join metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
                 DispatchQueue.main.async {
-                    self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(participant), attributes: mirrored)
+                    self.delegate?.room(o, participant: LKParticipant(participant), didUpdateAttributes: mirrored)
                     (self.delegate as? LKRoomDelegateIOSCompat)?.room(o, participant: LKParticipant(participant), didUpdateAttributes: mirrored)
                 }
             }
@@ -203,7 +203,7 @@ extension LKRoom {
                 let id = participant.identity?.stringValue ?? "<unknown>"
                 print("Skip LiveKit(iOS): metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
                 DispatchQueue.main.async {
-                    self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(participant), attributes: mirrored)
+                    self.delegate?.room(o, participant: LKParticipant(participant), didUpdateAttributes: mirrored)
                     (self.delegate as? LKRoomDelegateIOSCompat)?.room(o, participant: LKParticipant(participant), didUpdateAttributes: mirrored)
                 }
             }
@@ -240,12 +240,12 @@ extension LKRoom {
                         if !full.isEmpty {
                             let initialKeys = Array(full.keys)
                             print("Skip→Swift: initial didUpdateAttributes snapshot identity=\(id) keys=\(initialKeys)")
-                            try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(rp), attributes: full)
-                                #if !SKIP
-                                (delegate as? LKRoomDelegateIOSCompat)?.room(owner, participant: LKParticipant(rp), didUpdateAttributes: full)
-                                #endif
-                            }
+                    try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        delegate.room(owner, participant: LKParticipant(rp), didUpdateAttributes: full)
+                        #if !SKIP
+                        (delegate as? LKRoomDelegateIOSCompat)?.room(owner, participant: LKParticipant(rp), didUpdateAttributes: full)
+                        #endif
+                    }
                         }
                         // If backend encodes agent state in metadata, mirror it as an attributes update for Swift bridge
                         if !hasState, let jsonStr = rp.metadata, let data = jsonStr.data(using: String.Encoding.utf8),
@@ -254,7 +254,7 @@ extension LKRoom {
                             let mirrored: [String: String] = ["lk.agent.state": state]
                             print("Skip LiveKit: metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
                             try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(rp), attributes: mirrored)
+                                delegate.room(owner, participant: LKParticipant(rp), didUpdateAttributes: mirrored)
                                 #if !SKIP
                                 (delegate as? LKRoomDelegateIOSCompat)?.room(owner, participant: LKParticipant(rp), didUpdateAttributes: mirrored)
                                 #endif
@@ -296,7 +296,7 @@ extension LKRoom {
                     // Pass through exactly as-is; preserve key casing
                     print("Skip→Swift: calling didUpdateAttributes for identity=\(identity)")
                     try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(ev.participant), attributes: changed)
+                        delegate.room(owner, participant: LKParticipant(ev.participant), didUpdateAttributes: changed)
                         #if !SKIP
                         (delegate as? LKRoomDelegateIOSCompat)?.room(owner, participant: LKParticipant(ev.participant), didUpdateAttributes: changed)
                         #endif
@@ -319,7 +319,7 @@ extension LKRoom {
                         let keys = Array(full.keys)
                         print("Skip→Swift: join snapshot didUpdateAttributes identity=\(id) keys=\(keys)")
                         try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                            delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(ev.participant), attributes: full)
+                            delegate.room(owner, participant: LKParticipant(ev.participant), didUpdateAttributes: full)
                             #if !SKIP
                             (delegate as? LKRoomDelegateIOSCompat)?.room(owner, participant: LKParticipant(ev.participant), didUpdateAttributes: full)
                             #endif
@@ -333,7 +333,7 @@ extension LKRoom {
                         let mirrored: [String: String] = ["lk.agent.state": state]
                         print("Skip LiveKit: join metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
                         try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                            delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(ev.participant), attributes: mirrored)
+                            delegate.room(owner, participant: LKParticipant(ev.participant), didUpdateAttributes: mirrored)
                             #if !SKIP
                             (delegate as? LKRoomDelegateIOSCompat)?.room(owner, participant: LKParticipant(ev.participant), didUpdateAttributes: mirrored)
                             #endif
