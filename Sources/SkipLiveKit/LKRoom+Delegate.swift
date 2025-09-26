@@ -36,6 +36,7 @@ public extension LKRoomDelegate {
     func lk_roomData(_ room: LKRoom, data: Data, participant: LKParticipant?) {}
 }
 
+#if !SKIP
 // Optional compatibility protocol exposing iOS-native LiveKit-style names.
 public protocol LKRoomDelegateIOSCompat: AnyObject {
     func roomDidConnect(_ room: LKRoom)
@@ -62,6 +63,7 @@ public extension LKRoomDelegateIOSCompat {
     func room(_ room: LKRoom, didUpdateMetadata metadata: String?) {}
     func room(_ room: LKRoom, didReceiveData data: Data, participant: LKParticipant?) {}
 }
+#endif
 
 extension LKRoom {
     // MARK: - Delegate management
@@ -220,7 +222,9 @@ extension LKRoom {
                     print("Skip LiveKit: Room connected")
                     try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                         delegate.lk_roomDidConnect(owner)
-                        delegate.roomDidConnect(owner)
+                        #if !SKIP
+                        (delegate as? LKRoomDelegateIOSCompat)?.roomDidConnect(owner)
+                        #endif
                     }
                     // Post-connect validation logs for each remote participant
                     for rp in owner.room.remoteParticipants.values {
@@ -238,7 +242,9 @@ extension LKRoom {
                             print("Skip→Swift: initial didUpdateAttributes snapshot identity=\(id) keys=\(initialKeys)")
                             try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                                 delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(rp), attributes: full)
-                                delegate.room(owner, participant: LKParticipant(rp), didUpdateAttributes: full)
+                                #if !SKIP
+                                (delegate as? LKRoomDelegateIOSCompat)?.room(owner, participant: LKParticipant(rp), didUpdateAttributes: full)
+                                #endif
                             }
                         }
                         // If backend encodes agent state in metadata, mirror it as an attributes update for Swift bridge
@@ -249,7 +255,9 @@ extension LKRoom {
                             print("Skip LiveKit: metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
                             try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                                 delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(rp), attributes: mirrored)
-                                delegate.room(owner, participant: LKParticipant(rp), didUpdateAttributes: mirrored)
+                                #if !SKIP
+                                (delegate as? LKRoomDelegateIOSCompat)?.room(owner, participant: LKParticipant(rp), didUpdateAttributes: mirrored)
+                                #endif
                             }
                         }
                         owner.updateIsAgentCacheAndLog(for: id)
@@ -259,19 +267,25 @@ extension LKRoom {
                     print("Skip LiveKit: Room reconnecting")
                     try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                         delegate.lk_roomIsReconnecting(owner)
-                        delegate.roomIsReconnecting(owner)
+                        #if !SKIP
+                        (delegate as? LKRoomDelegateIOSCompat)?.roomIsReconnecting(owner)
+                        #endif
                     }
                 case is io.livekit.android.events.RoomEvent.Reconnected:
                     print("Skip LiveKit: Room reconnected")
                     try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                         delegate.lk_roomDidReconnect(owner)
-                        delegate.roomDidReconnect(owner)
+                        #if !SKIP
+                        (delegate as? LKRoomDelegateIOSCompat)?.roomDidReconnect(owner)
+                        #endif
                     }
                 case is io.livekit.android.events.RoomEvent.Disconnected:
                     print("Skip LiveKit: Room disconnected")
                     try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                         delegate.lk_roomDidDisconnect(owner, error: nil)
-                        delegate.room(owner, didDisconnectWithError: nil)
+                        #if !SKIP
+                        (delegate as? LKRoomDelegateIOSCompat)?.room(owner, didDisconnectWithError: nil)
+                        #endif
                     }
                 case let ev as io.livekit.android.events.RoomEvent.ParticipantAttributesChanged:
                     var changed: [String: String] = [:]
@@ -283,7 +297,9 @@ extension LKRoom {
                     print("Skip→Swift: calling didUpdateAttributes for identity=\(identity)")
                     try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                         delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(ev.participant), attributes: changed)
-                        delegate.room(owner, participant: LKParticipant(ev.participant), didUpdateAttributes: changed)
+                        #if !SKIP
+                        (delegate as? LKRoomDelegateIOSCompat)?.room(owner, participant: LKParticipant(ev.participant), didUpdateAttributes: changed)
+                        #endif
                     }
                     owner.updateIsAgentCacheAndLog(for: identity)
                     owner.recomputeAgentParticipantAndLog()
@@ -292,7 +308,9 @@ extension LKRoom {
                     print("Skip LiveKit: participant connected identity=\(id)")
                     try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                         delegate.lk_roomParticipantConnected(owner, participant: LKParticipant(ev.participant))
-                        delegate.room(owner, participantDidConnect: LKParticipant(ev.participant))
+                        #if !SKIP
+                        (delegate as? LKRoomDelegateIOSCompat)?.room(owner, participantDidConnect: LKParticipant(ev.participant))
+                        #endif
                     }
                     // Immediately deliver initial attributes snapshot for newly joined participant
                     var full: [String: String] = [:]
@@ -302,7 +320,9 @@ extension LKRoom {
                         print("Skip→Swift: join snapshot didUpdateAttributes identity=\(id) keys=\(keys)")
                         try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                             delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(ev.participant), attributes: full)
-                            delegate.room(owner, participant: LKParticipant(ev.participant), didUpdateAttributes: full)
+                            #if !SKIP
+                            (delegate as? LKRoomDelegateIOSCompat)?.room(owner, participant: LKParticipant(ev.participant), didUpdateAttributes: full)
+                            #endif
                         }
                     }
                     // Mirror metadata state if needed
@@ -314,7 +334,9 @@ extension LKRoom {
                         print("Skip LiveKit: join metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
                         try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                             delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(ev.participant), attributes: mirrored)
-                            delegate.room(owner, participant: LKParticipant(ev.participant), didUpdateAttributes: mirrored)
+                            #if !SKIP
+                            (delegate as? LKRoomDelegateIOSCompat)?.room(owner, participant: LKParticipant(ev.participant), didUpdateAttributes: mirrored)
+                            #endif
                         }
                     }
                     owner.updateIsAgentCacheAndLog(for: id)
@@ -324,7 +346,9 @@ extension LKRoom {
                     print("Skip LiveKit: participant disconnected identity=\(id)")
                     try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                         delegate.lk_roomParticipantDisconnected(owner, participant: LKParticipant(ev.participant))
-                        delegate.room(owner, participantDidDisconnect: LKParticipant(ev.participant))
+                        #if !SKIP
+                        (delegate as? LKRoomDelegateIOSCompat)?.room(owner, participantDidDisconnect: LKParticipant(ev.participant))
+                        #endif
                     }
                     owner.lastIsAgentByIdentity.removeValue(forKey: id)
                     if owner.cachedAgentIdentity == id { owner.cachedAgentIdentity = nil }
@@ -343,7 +367,9 @@ extension LKRoom {
                         print("Skip LiveKit: metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
                         try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                             delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(ev.participant), attributes: mirrored)
-                            delegate.room(owner, participant: LKParticipant(ev.participant), didUpdateAttributes: mirrored)
+                            #if !SKIP
+                            (delegate as? LKRoomDelegateIOSCompat)?.room(owner, participant: LKParticipant(ev.participant), didUpdateAttributes: mirrored)
+                            #endif
                         }
                     }
                     owner.updateIsAgentCacheAndLog(for: id)
