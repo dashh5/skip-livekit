@@ -114,6 +114,28 @@ extension LKRoom {
         func room(_ room: LiveKit.Room, participantDidConnect participant: LiveKit.RemoteParticipant) {
             guard let o = owner else { return }
             delegate?.lk_roomParticipantConnected(o, participant: LKParticipant(participant))
+            // Immediately deliver initial attributes snapshot for newly joined participant
+            let attrs = participant.attributes
+            if !attrs.isEmpty {
+                let id = participant.identity?.stringValue ?? "<unknown>"
+                let keys = Array(attrs.keys)
+                print("Skip→Swift(iOS): join snapshot didUpdateAttributes identity=\(id) keys=\(keys)")
+                DispatchQueue.main.async {
+                    self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(participant), attributes: attrs)
+                }
+            }
+            // Mirror metadata state if needed
+            if !attrs.keys.contains("lk.agent.state"), let meta = participant.metadata,
+               let data = meta.data(using: String.Encoding.utf8),
+               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let state = obj["lk.agent.state"] as? String {
+                let id = participant.identity?.stringValue ?? "<unknown>"
+                let mirrored = ["lk.agent.state": state]
+                print("Skip LiveKit(iOS): join metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
+                DispatchQueue.main.async {
+                    self.delegate?.lk_roomParticipantAttributes(o, participant: LKParticipant(participant), attributes: mirrored)
+                }
+            }
         }
         func room(_ room: LiveKit.Room, participantDidDisconnect participant: LiveKit.RemoteParticipant) {
             guard let o = owner else { return }
@@ -224,6 +246,27 @@ extension LKRoom {
                     print("Skip LiveKit: participant connected identity=\(id)")
                     try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                         delegate.lk_roomParticipantConnected(owner, participant: LKParticipant(ev.participant))
+                    }
+                    // Immediately deliver initial attributes snapshot for newly joined participant
+                    var full: [String: String] = [:]
+                    for (k, v) in ev.participant.attributes { full[k] = v }
+                    if !full.isEmpty {
+                        let keys = Array(full.keys)
+                        print("Skip→Swift: join snapshot didUpdateAttributes identity=\(id) keys=\(keys)")
+                        try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(ev.participant), attributes: full)
+                        }
+                    }
+                    // Mirror metadata state if needed
+                    if !full.keys.contains("lk.agent.state"), let meta = ev.participant.metadata,
+                       let data = meta.data(using: String.Encoding.utf8),
+                       let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let state = obj["lk.agent.state"] as? String {
+                        let mirrored: [String: String] = ["lk.agent.state": state]
+                        print("Skip LiveKit: join metadata mirrored to attributes identity=\(id) attrs=\(mirrored)")
+                        try? await kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            delegate.lk_roomParticipantAttributes(owner, participant: LKParticipant(ev.participant), attributes: mirrored)
+                        }
                     }
                     owner.updateIsAgentCacheAndLog(for: id)
                     owner.recomputeAgentParticipantAndLog()
